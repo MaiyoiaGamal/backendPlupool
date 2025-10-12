@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:3000"
     
+    # WhatsApp/Twilio (for production)
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_WHATSAPP_NUMBER: str = ""
+    
     @property
     def cors_origins(self) -> List[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
