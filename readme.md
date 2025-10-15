@@ -115,3 +115,63 @@ Once the server is running, access the interactive API documentation:
 
 Swagger UI: http://127.0.0.1:8000/docs
 ReDoc: http://127.0.0.1:8000/redoc
+
+Postman urls
+
+📁 Plupool API
+│
+├── 📁 Health & Root
+│   ├── Root (GET /)
+│   └── Health Check (GET /api/v1/health)
+│
+├── 📁 Authentication
+│   ├── Guest Mode (POST /api/v1/auth/guest)
+│   ├── Send OTP (POST /api/v1/auth/send-otp)
+│   └── Verify OTP (Login) (POST /api/v1/auth/verify-otp)
+│
+├── 📁 Sign Up
+│   ├── Sign Up - Technician (POST /api/v1/auth/signup/technician)
+│   ├── Sign Up - Pool Owner (POST /api/v1/auth/signup/pool-owner)
+│   └── Sign Up - Company (POST /api/v1/auth/signup/company)
+│
+├── 📁 Users (Protected)
+│   ├── Get Current User (GET /api/v1/users/me)
+│   ├── Get All Users (GET /api/v1/users/)
+│   └── Get User by ID (GET /api/v1/users/{id})
+│
+└── 📁 Validation Tests
+    ├── Invalid Phone
+    ├── Invalid Name
+    └── Invalid OTP
+```
+
+---
+
+## **Testing Flow:**
+
+### **1. Test Basic Endpoints**
+```
+✅ Root
+✅ Health Check
+✅ Guest Mode
+```
+
+### **2. Sign Up Flow (Technician Example)**
+```
+1. Send OTP → Check terminal for code
+2. Sign Up - Technician → Use OTP from terminal
+3. Verify response
+```
+
+### **3. Login Flow**
+```
+1. Send OTP → Get code from terminal
+2. Verify OTP → Token auto-saved in environment
+3. Get Current User → Uses saved token
+```
+
+### **4. Test Protected Endpoints**
+```
+✅ Get Current User (needs token)
+✅ Get All Users (needs token)
+✅ Get User by ID (needs token)
