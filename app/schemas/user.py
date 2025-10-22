@@ -113,3 +113,18 @@ class UserResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+class UserUpdate(BaseModel):
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    full_name: Optional[str] = None
+    profile_image: Optional[str] = None
+    role: UserRole
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    address: Optional[str] = None
+    skills: Optional[str] = None
+    years_of_experience: Optional[int] = None
+
+    class Config:
+        from_attributes = True  # for Pydantic v2 (was orm_mode in v1)

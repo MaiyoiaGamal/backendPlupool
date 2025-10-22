@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
 from app.db.database import engine, Base
+from app.core.tasks import scheduler
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -32,3 +33,6 @@ async def root():
         "version": settings.APP_VERSION,
         "docs": "/docs"
     }
+
+# ابدأ المهام المجدولة
+scheduler.start()
