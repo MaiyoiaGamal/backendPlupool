@@ -138,16 +138,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
 ```
 
-6. **Create database tables**
-```bash
-python create_tables.py
-```
-
-7. **Seed sample data (Optional)**
-```bash
-python seed_data.py
-```
-
 This will add:
 - 5 maintenance services
 - 4 pool types
