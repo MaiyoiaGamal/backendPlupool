@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
-from app.db.database import engine, Base
+from app.db.database import engine
+from app.db.base import Base
 from app.core.tasks import scheduler
 
 # Create database tables

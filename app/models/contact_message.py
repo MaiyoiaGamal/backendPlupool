@@ -1,7 +1,7 @@
 # app/models/contact_message.py
 from sqlalchemy import Integer, String, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
-from .base import Base
+from app.db.base import Base
 from datetime import datetime
 
 class ContactMessage(Base):

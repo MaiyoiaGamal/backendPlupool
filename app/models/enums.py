@@ -1,4 +1,12 @@
+# app/models/enums.py
 from enum import Enum
+
+
+class UserRole(str, Enum):
+    GUEST = "guest"             # ضيف - Browse only
+    POOL_OWNER = "pool_owner"   # صاحب حمام
+    TECHNICIAN = "technician"   # فني صيانة
+    COMPANY = "company"         # شركة 
 
 class BookingType(str, Enum):
     CONSTRUCTION = "construction"
@@ -12,3 +20,4 @@ class BookingStatus(str, Enum):
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     REJECTED = "rejected"
+

@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Date, Time, Enum, Boolean, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from .base import Base
-from app.models.booking_enums import BookingType, BookingStatus  
+from app.db.base import Base
+from app.models.enums import BookingType, BookingStatus  
 
 class Booking(Base):
     __tablename__ = "bookings"
@@ -34,6 +34,7 @@ class Booking(Base):
     reminder_sent = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, onupdate=func.now(), nullable=True)
+    
     # Relationships (optional but useful for .service, .user, etc.)
     user = relationship("User", back_populates="bookings")
     service = relationship("Service", back_populates="bookings")

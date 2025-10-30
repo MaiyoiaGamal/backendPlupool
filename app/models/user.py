@@ -1,13 +1,9 @@
 from sqlalchemy import Boolean, Column, Integer, String, DateTime, Enum as SQLAEnum, Float, Text
 from sqlalchemy.sql import func
-from app.db.database import Base
-import enum
+from sqlalchemy.orm import relationship  
+from app.db.base import Base
+from app.models.enums import UserRole
 
-class UserRole(str, enum.Enum):
-    GUEST = "guest"             # ضيف - Browse only
-    POOL_OWNER = "pool_owner"   # صاحب حمام
-    TECHNICIAN = "technician"   # فني صيانة
-    COMPANY = "company"         # شركة
 
 class User(Base):
     __tablename__ = "users"
@@ -19,7 +15,7 @@ class User(Base):
     full_name = Column(String, nullable=True)
     profile_image = Column(String, nullable=True)  # URL or path
     role = Column(SQLAEnum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False)
-    
+   
     # Location (Owner & Technician)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
@@ -42,3 +38,6 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
+    
+     # Relationships
+    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
