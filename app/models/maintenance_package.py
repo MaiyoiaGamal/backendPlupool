@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Enum as SQLEnum, JSON
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
 import enum
@@ -34,6 +35,9 @@ class MaintenancePackage(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    bookings = relationship("Booking", back_populates="package")
     
     def __repr__(self):
         return f"<MaintenancePackage {self.name_ar} - {self.duration}>"

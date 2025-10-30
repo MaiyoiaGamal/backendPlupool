@@ -13,7 +13,7 @@ from app.schemas.maintenance_package import (
     MaintenancePackageResponse
 )
 from app.core.dependencies import get_current_user
-from app.models.user import User
+from app.models.user import User, UserRole
 
 router = APIRouter()
 
@@ -33,6 +33,82 @@ def get_all_services(
         query = query.filter(Service.service_type == service_type)
     
     services = query.offset(skip).limit(limit).all()
+    return services
+
+# ============= Customized Services APIs by User Type =============
+
+@router.get("/services/pool-owner", response_model=List[ServiceResponse], summary="خدمات مخصصة لصاحب الحمام")
+def get_pool_owner_services(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    الحصول على الخدمات المخصصة لصاحب الحمام
+    - التركيز على خدمات الصيانة
+    """
+    if current_user.role != UserRole.POOL_OWNER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="هذه الصفحة مخصصة لأصحاب المسابح فقط"
+        )
+    
+    # صاحب الحمام يحتاج خدمات الصيانة بشكل أساسي
+    services = db.query(Service).filter(
+        Service.status == "active",
+        Service.service_type == ServiceType.MAINTENANCE
+    ).offset(skip).limit(limit).all()
+    
+    return services
+
+@router.get("/services/company", response_model=List[ServiceResponse], summary="خدمات مخصصة للشركة")
+def get_company_services(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    الحصول على جميع الخدمات المتاحة للشركة
+    - جميع أنواع الخدمات (إنشاء وصيانة)
+    """
+    if current_user.role != UserRole.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="هذه الصفحة مخصصة للشركات فقط"
+        )
+    
+    # الشركة تحتاج جميع أنواع الخدمات
+    services = db.query(Service).filter(
+        Service.status == "active"
+    ).offset(skip).limit(limit).all()
+    
+    return services
+
+@router.get("/services/technician", response_model=List[ServiceResponse], summary="خدمات مخصصة للفني")
+def get_technician_services(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    الحصول على الخدمات المخصصة للفني
+    - خدمات الصيانة فقط (مجال عمله)
+    """
+    if current_user.role != UserRole.TECHNICIAN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="هذه الصفحة مخصصة للفنيين فقط"
+        )
+    
+    # الفني يعمل في مجال الصيانة
+    services = db.query(Service).filter(
+        Service.status == "active",
+        Service.service_type == ServiceType.MAINTENANCE
+    ).offset(skip).limit(limit).all()
+    
     return services
 
 @router.get("/services/{service_id}", response_model=ServiceResponse, summary="تفاصيل خدمة")
