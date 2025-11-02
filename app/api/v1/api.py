@@ -1,5 +1,20 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, users, contact, notifications, suggestions ,service , booking , products ,offers
+
+from app.api.v1.endpoints import (
+    auth,
+    booking,
+    company,
+    contact,
+    health,
+    notifications,
+    offers,
+    pool_owner,
+    products,
+    service,
+    suggestions,
+    technician,
+    users,
+)
 
 api_router = APIRouter()
 
@@ -17,3 +32,7 @@ api_router.include_router(offers.router,prefix="/offers",tags=["العروض - O
 api_router.include_router(booking.router,prefix="/booking",tags=["الحجوزات - Bookings"])
 # Products routes (المنتجات والعروض) 
 api_router.include_router(products.router,prefix="/products",tags=["المنتجات والعروض - Products & Offers"])
+ # Role-based portals
+api_router.include_router(pool_owner.router, prefix="/pool-owner")
+api_router.include_router(company.router, prefix="/company")
+api_router.include_router(technician.router, prefix="/technician")
