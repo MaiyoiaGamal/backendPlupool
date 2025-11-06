@@ -39,5 +39,9 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
     
-     # Relationships
+    # Relationships
     comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+    bookings = relationship("Booking", back_populates="user", cascade="all, delete-orphan")
+    technician_tasks = relationship(
+        "TechnicianTask", back_populates="technician", cascade="all, delete-orphan"
+    )
