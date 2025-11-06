@@ -2,10 +2,12 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
+from typing import Tuple
 from app.core.config import settings
 from app.core.security import decode_access_token
 from app.db.database import get_db
 from app.models.user import User
+from app.models.enums import UserRole
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
@@ -39,3 +41,27 @@ async def get_current_active_user(
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+def _ensure_role(current_user:User , allowed_roles:Tuple
+[UserRole,...]) -> User:
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code= status.HTTP_403_FORBIDDEN,
+            detail="??? ???? ?????? ??????? ??? ??? ??????"
+        )
+    return current_user   
+ 
+async def get_current_pool_owner(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    return _ensure_role(current_user , (UserRole.POOL_OWNER,))
+
+async def get_current_company_user(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    return _ensure_role(current_user , (UserRole.COMPANY,))
+
+async def get_current_technician(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    return _ensure_role(current_user , (UserRole.TECHNICIAN,))
