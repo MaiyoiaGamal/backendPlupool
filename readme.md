@@ -220,6 +220,18 @@ Once the server is running, access the interactive API documentation:
     ├── Invalid Name
     └── Invalid OTP
 ```
+Role Dashboards
+---------------
+
+Role specific homepage APIs are exposed under `/api/v1/dashboard` and require a valid bearer token with the matching user role:
+
+| Endpoint | Method | Role | Description |
+| --- | --- | --- | --- |
+| `/api/v1/dashboard/pool-owner/home` | GET | Pool Owner | Returns quick actions, featured offers, store highlights, testimonials, projects, and personalized account metrics for pool owners. |
+| `/api/v1/dashboard/company/home` | GET | Company | Delivers the shared homepage sections plus a company-focused account summary (team size, active projects, pending requests, average rating). |
+| `/api/v1/dashboard/technician/home` | GET | Technician | Provides technician stats (rating, weekly workload, completed tasks), a weekly planner, store highlights, projects, and recent feedback cards. |
+
+Each response bundles navigation metadata (user info, contact channels, notification counts) and a standardized bottom navigation structure to align with the shared mobile designs.
 
 ---
 
@@ -315,7 +327,6 @@ For maintenance packages, the system automatically:
 ✅ View Pending Bookings
 ✅ Confirm/Cancel Bookings
 ```
-
 ---
 
 ## Example Requests

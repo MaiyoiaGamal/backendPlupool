@@ -1,6 +1,17 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, users, contact, notifications, suggestions ,service , booking , products ,offers
-
+from app.api.v1.endpoints import (
+    health,
+    auth,
+    users,
+    contact,
+    notifications,
+    suggestions,
+    service,
+    booking,
+    products,
+    offers,
+    dashboard,
+)
 api_router = APIRouter()
 
 api_router.include_router(health.router, prefix="/health", tags=["health"])
@@ -17,3 +28,5 @@ api_router.include_router(offers.router,prefix="/offers",tags=["العروض - O
 api_router.include_router(booking.router,prefix="/booking",tags=["الحجوزات - Bookings"])
 # Products routes (المنتجات والعروض) 
 api_router.include_router(products.router,prefix="/products",tags=["المنتجات والعروض - Products & Offers"])
+# Dashboards per role
+api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboards"])
