@@ -116,7 +116,7 @@ async def verify_otp_login(request: VerifyOTPRequest, db: Session = Depends(get_
     
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.post("/signup/technician", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/signup/technician", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def signup_technician(data: TechnicianSignUp, db: Session = Depends(get_db)):
     """
     تسجيل فني صيانة
@@ -147,14 +147,24 @@ async def signup_technician(data: TechnicianSignUp, db: Session = Depends(get_db
     user.skills = ",".join(data.skills)  # Store as comma-separated
     user.years_of_experience = data.years_of_experience
     user.is_phone_verified = True
+    user.last_login = datetime.now(timezone.utc)
     user.otp_code = None
     
     db.commit()
     db.refresh(user)
     
-    return user
+    # Create access token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+       data={"sub": str(user.id), "role": user.role.value},
+       expires_delta=access_token_expires
+    )
+   
+    return {"access_token": access_token, "token_type": "bearer"}
+    
+   
 
-@router.post("/signup/pool-owner", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/signup/pool-owner", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def signup_pool_owner(data: PoolOwnerSignUp, db: Session = Depends(get_db)):
     """
     تسجيل صاحب حمام
@@ -183,14 +193,22 @@ async def signup_pool_owner(data: PoolOwnerSignUp, db: Session = Depends(get_db)
     user.longitude = data.longitude
     user.address = data.address
     user.is_phone_verified = True
+    user.last_login = datetime.now(timezone.utc)
     user.otp_code = None
     
     db.commit()
     db.refresh(user)
     
-    return user
+    # Create access token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(user.id), "role": user.role.value},
+        expires_delta=access_token_expires
+    )
+    
+    return {"access_token": access_token, "token_type": "bearer"}
 
-@router.post("/signup/company", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/signup/company", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def signup_company(data: CompanySignUp, db: Session = Depends(get_db)):
     """
     تسجيل ممثل شركة
@@ -216,9 +234,17 @@ async def signup_company(data: CompanySignUp, db: Session = Depends(get_db)):
     user.profile_image = data.profile_image
     user.role = UserRole.COMPANY
     user.is_phone_verified = True
+    user.last_login = datetime.now(timezone.utc)
     user.otp_code = None
     
     db.commit()
     db.refresh(user)
     
-    return user
+    # Create access token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(user.id), "role": user.role.value},
+        expires_delta=access_token_expires
+    )
+    
+    return {"access_token": access_token, "token_type": "bearer"}
