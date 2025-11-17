@@ -3,13 +3,19 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import get_current_technician
 from app.db.database import get_db
 from app.models.service_offer import OfferStatus, ServiceOffer
-from app.models.technician_task import TaskPriority, TechnicianTask, TechnicianTaskStatus
+from app.models.technician_task import (
+    TaskPriority,
+    TechnicianTask,
+    TechnicianTaskStatus,
+    TechnicianServiceType,
+)
 from app.models.water_quality import WaterQualityReading
 from app.schemas.notification import (
     TechnicianNotificationsFeedResponse,
@@ -30,6 +36,79 @@ from app.schemas.water_quality import (
 from app.models.user import User
 
 router = APIRouter(prefix="/technician", tags=["Technician Tasks"])
+
+
+@router.get(
+    "/tasks",
+    response_model=List[TechnicianTaskResponse],
+    summary="قائمة مهام الفني مع خيارات الفلترة",
+)
+def list_technician_tasks(
+    statuses: Optional[List[TechnicianTaskStatus]] = Query(None, description="فلترة حسب الحالة"),
+    priorities: Optional[List[TaskPriority]] = Query(None, description="فلترة حسب الأولوية"),
+    service_types: Optional[List[TechnicianServiceType]] = Query(None, description="فلترة حسب نوع الخدمة"),
+    city: Optional[str] = Query(None, description="فلترة حسب الموقع/المدينة"),
+    search: Optional[str] = Query(None, description="بحث في العنوان أو ملاحظات المهمة"),
+    from_date: Optional[date] = Query(None, description="تاريخ بداية الفلترة"),
+    to_date: Optional[date] = Query(None, description="تاريخ نهاية الفلترة"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(get_current_technician),
+    db: Session = Depends(get_db),
+) -> List[TechnicianTaskResponse]:
+    query = db.query(TechnicianTask).filter(
+        TechnicianTask.technician_id == current_user.id
+    )
+
+    if statuses:
+        query = query.filter(TechnicianTask.status.in_(statuses))
+
+    if priorities:
+        query = query.filter(TechnicianTask.priority.in_(priorities))
+
+    if service_types:
+        query = query.filter(TechnicianTask.service_type.in_(service_types))
+
+    if city:
+        pattern = f"%{city}%"
+        query = query.filter(
+            or_(
+                TechnicianTask.location_name.ilike(pattern),
+                TechnicianTask.location_address.ilike(pattern),
+            )
+        )
+
+    if search:
+        pattern = f"%{search}%"
+        query = query.filter(
+            or_(
+                TechnicianTask.title.ilike(pattern),
+                TechnicianTask.description.ilike(pattern),
+                TechnicianTask.notes.ilike(pattern),
+                TechnicianTask.customer_name.ilike(pattern),
+            )
+        )
+
+    if from_date:
+        query = query.filter(TechnicianTask.scheduled_date >= from_date)
+
+    if to_date:
+        query = query.filter(TechnicianTask.scheduled_date <= to_date)
+
+    tasks = (
+        query.order_by(
+            TechnicianTask.priority.desc(),
+            TechnicianTask.scheduled_date.asc(),
+            TechnicianTask.scheduled_time.asc(),
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    return [TechnicianTaskResponse.model_validate(task) for task in tasks]
+
+
 
 IDEAL_WATER_RANGES = {
     "temperature_c": "24° - 28°",

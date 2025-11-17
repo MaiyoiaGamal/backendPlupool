@@ -3,7 +3,11 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.models.technician_task import TechnicianTaskStatus, TaskPriority
+from app.models.technician_task import (
+    TechnicianTaskStatus,
+    TaskPriority,
+    TechnicianServiceType,
+)
 from app.schemas.pool_profile import PoolProfileResponse
 from app.schemas.water_quality import WaterQualityHistoryResponse
 
@@ -15,6 +19,9 @@ class TechnicianTaskBase(BaseModel):
     scheduled_time: Optional[time] = Field(None, description="وقت تنفيذ المهمة")
     status: TechnicianTaskStatus = Field(default=TechnicianTaskStatus.SCHEDULED)
     priority: TaskPriority = Field(default=TaskPriority.NORMAL)
+    service_type: Optional[TechnicianServiceType] = Field(
+        None, description="نوع الخدمة المطلوبة"
+    )
     location_name: Optional[str] = Field(None, description="اسم الموقع الظاهر")
     location_address: Optional[str] = Field(None, description="عنوان الموقع التفصيلي")
     location_latitude: Optional[float] = Field(None, description="احداثيات خط العرض")

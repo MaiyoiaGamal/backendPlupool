@@ -32,4 +32,4 @@ api_router.include_router(products.router,prefix="/products",tags=["المنتج
 # Dashboards per role
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboards"])
 # Technician specific APIs
-api_router.include_router(technician_tasks.router, tags=["Technician"])
+api_router.include_router(technician_tasks.router)

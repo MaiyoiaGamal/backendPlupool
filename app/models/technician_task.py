@@ -34,6 +34,13 @@ class TechnicianTaskStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class TechnicianServiceType(str, Enum):
+    REPAIR = "repair"
+    CLEANING = "cleaning"
+    MAINTENANCE = "maintenance"
+    INSTALLATION = "installation"
+
+
 class TechnicianTask(Base):
     __tablename__ = "technician_tasks"
 
@@ -55,6 +62,14 @@ class TechnicianTask(Base):
         SQLAEnum(TaskPriority, values_callable=lambda x: [e.value for e in x]),
         default=TaskPriority.NORMAL,
         nullable=False,
+    )
+
+    service_type = Column(
+        SQLAEnum(
+            TechnicianServiceType,
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        nullable=True,
     )
 
     location_name = Column(String(255), nullable=True)
