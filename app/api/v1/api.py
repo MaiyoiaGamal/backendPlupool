@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     products,
     offers,
     dashboard,
+    technician_tasks,
 )
 api_router = APIRouter()
 
@@ -30,3 +31,5 @@ api_router.include_router(booking.router,prefix="/booking",tags=["الحجوزا
 api_router.include_router(products.router,prefix="/products",tags=["المنتجات والعروض - Products & Offers"])
 # Dashboards per role
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboards"])
+# Technician specific APIs
+api_router.include_router(technician_tasks.router, tags=["Technician"])
