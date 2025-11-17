@@ -1,5 +1,5 @@
 from datetime import date, time, datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -60,6 +60,13 @@ class TechnicianTaskResponse(TechnicianTaskBase):
     class Config:
         from_attributes = True
 
+
+class TechnicianTaskListResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    has_more: bool
+    tasks: List[TechnicianTaskResponse]
 
 
 class ClientDetailsSection(BaseModel):
