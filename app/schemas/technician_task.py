@@ -4,6 +4,8 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from app.models.technician_task import TechnicianTaskStatus, TaskPriority
+from app.schemas.pool_profile import PoolProfileResponse
+from app.schemas.water_quality import WaterQualityHistoryResponse
 
 
 class TechnicianTaskBase(BaseModel):
@@ -57,3 +59,27 @@ class TechnicianTaskResponse(TechnicianTaskBase):
 
     class Config:
         from_attributes = True
+
+
+
+class ClientDetailsSection(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    avatar: Optional[str] = None
+    location_name: Optional[str] = None
+    location_address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    map_url: Optional[str] = None
+    scheduled_date: Optional[date] = None
+    scheduled_time: Optional[time] = None
+    priority: TaskPriority = TaskPriority.NORMAL
+    status: TechnicianTaskStatus = TechnicianTaskStatus.SCHEDULED
+
+
+class TechnicianTaskDetailResponse(BaseModel):
+    task: TechnicianTaskResponse
+    client: ClientDetailsSection
+    pool_profile: Optional[PoolProfileResponse] = None
+    water_quality: WaterQualityHistoryResponse
+        

@@ -76,7 +76,19 @@ class TechnicianTask(Base):
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
     technician = relationship("User", back_populates="technician_tasks")
-
+    
+    pool_profile = relationship(
+        "ClientPoolProfile",
+        back_populates="task",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    water_quality_readings = relationship(
+        "WaterQualityReading",
+        back_populates="task",
+        cascade="all, delete-orphan",
+    )
+    
     def mark_completed(
         self,
         rating: Optional[int] = None,
