@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import get_current_technician
@@ -20,6 +21,7 @@ from app.schemas.service_offer import ServiceOfferDetailResponse
 from app.schemas.technician_task import (
     ClientDetailsSection,
     TechnicianTaskDetailResponse,
+    TechnicianTaskListResponse,
     TechnicianTaskResponse,
 )
 from app.schemas.water_quality import (
@@ -36,6 +38,114 @@ IDEAL_WATER_RANGES = {
     "chlorine_ppm": "1.0 - 3.0 ppm",
     "ph_level": "7.2 - 7.6",
 }
+
+
+@router.get(
+    "/tasks",
+    response_model=TechnicianTaskListResponse,
+    summary="قائمة مهام الفني مع خيارات التصفية والبحث",
+)
+def list_technician_tasks(
+    status: Optional[List[TechnicianTaskStatus]] = Query(
+        None, description="فلترة حسب حالة المهمة مثل scheduled أو in_progress"
+    ),
+    priorities: Optional[List[TaskPriority]] = Query(
+        None, description="فلترة حسب أولوية المهمة مثل urgent أو high"
+    ),
+    service_types: Optional[List[str]] = Query(
+        None,
+        description="فلترة تقريبية حسب نوع الخدمة عبر مطابقة العنوان أو الوصف (مثال: صيانة، تنظيف)",
+    ),
+    locations: Optional[List[str]] = Query(
+        None,
+        description="فلترة تقريبية حسب اسم الموقع أو عنوانه (مثال: القاهرة، الجيزة)",
+    ),
+    start_date: Optional[date] = Query(None, description="أقدم تاريخ مسموح به (yyyy-mm-dd)"),
+    end_date: Optional[date] = Query(None, description="أحدث تاريخ مسموح به (yyyy-mm-dd)"),
+    search: Optional[str] = Query(
+        None,
+        description="نص بحث حر يتم تطبيقه على العنوان والوصف واسم العميل",
+    ),
+    limit: int = Query(50, ge=1, le=200, description="أقصى عدد من النتائج"),
+    offset: int = Query(0, ge=0, description="موضع البداية للصفحة الحالية"),
+    current_user: User = Depends(get_current_technician),
+    db: Session = Depends(get_db),
+) -> TechnicianTaskListResponse:
+    if start_date and end_date and end_date < start_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="end_date يجب أن يكون بعد أو يساوي start_date",
+        )
+
+    query = db.query(TechnicianTask).filter(TechnicianTask.technician_id == current_user.id)
+
+    if status:
+        query = query.filter(TechnicianTask.status.in_(status))
+
+    if priorities:
+        query = query.filter(TechnicianTask.priority.in_(priorities))
+
+    if start_date:
+        query = query.filter(TechnicianTask.scheduled_date >= start_date)
+    if end_date:
+        query = query.filter(TechnicianTask.scheduled_date <= end_date)
+
+    def _build_like_clauses(values: List[str], *columns) -> Optional[List]:
+        clauses = []
+        for value in values:
+            if not value:
+                continue
+            pattern = f"%{value.strip()}%"
+            if not pattern.strip("%"):
+                continue
+            for column in columns:
+                clauses.append(column.ilike(pattern))
+        return clauses
+
+    if service_types:
+        service_clauses = _build_like_clauses(
+            service_types, TechnicianTask.title, TechnicianTask.description
+        )
+        if service_clauses:
+            query = query.filter(or_(*service_clauses))
+
+    if locations:
+        location_clauses = _build_like_clauses(
+            locations, TechnicianTask.location_name, TechnicianTask.location_address
+        )
+        if location_clauses:
+            query = query.filter(or_(*location_clauses))
+
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                TechnicianTask.title.ilike(pattern),
+                TechnicianTask.description.ilike(pattern),
+                TechnicianTask.customer_name.ilike(pattern),
+                TechnicianTask.location_name.ilike(pattern),
+            )
+        )
+
+    total = query.count()
+
+    tasks = (
+        query.order_by(
+            TechnicianTask.scheduled_date.asc(),
+            TechnicianTask.scheduled_time.asc(),
+            TechnicianTask.id.asc(),
+        )
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    return TechnicianTaskListResponse(
+        total=total,
+        limit=limit,
+        offset=offset,
+        tasks=[TechnicianTaskResponse.model_validate(task) for task in tasks],
+    )
 
 
 @router.get(
