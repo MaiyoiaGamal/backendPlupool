@@ -1,5 +1,5 @@
 from datetime import date, time, datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -82,4 +82,11 @@ class TechnicianTaskDetailResponse(BaseModel):
     client: ClientDetailsSection
     pool_profile: Optional[PoolProfileResponse] = None
     water_quality: WaterQualityHistoryResponse
+
+
+class TechnicianTaskListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    tasks: List[TechnicianTaskResponse]
         
