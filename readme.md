@@ -138,12 +138,19 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
 ```
 
-This will add:
-- 5 maintenance services
-- 4 pool types
-- 3 maintenance packages (Monthly, Quarterly, Yearly)
 
 8. **Run the application**
+. **Seed sample data (optional but recommended)**
+```bash
+python seed_data.py
+```
+The script creates any missing tables and inserts demo content so the API,
+dashboards, store, and technician flows have something to render:
+- Core catalog: curated services, pool types, and maintenance packages
+- Store data: categories, featured products, and promotional offers
+- Sample activity: seeded users, bookings, testimonials, notifications, contact messages
+- Technician experience: tasks, pool profiles, and recent water-quality readings
+
 ```bash
 python -m uvicorn app.main:app --reload
 ```

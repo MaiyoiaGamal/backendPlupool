@@ -41,7 +41,6 @@ class User(Base):
     
     # Relationships
     comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
-    omments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
     bookings = relationship("Booking", back_populates="user", cascade="all, delete-orphan")
     technician_tasks = relationship(
         "TechnicianTask", back_populates="technician", cascade="all, delete-orphan"
