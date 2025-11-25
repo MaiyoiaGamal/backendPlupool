@@ -88,28 +88,39 @@ sql   CREATE DATABASE plupool_db;
    \q
 
 Configure environment variables
-Create .env file in the project root:
 
-env   # Application
-   APP_NAME=Plupool API
-   APP_VERSION=1.0.0
-   DEBUG=True
-   
-   # Database
-   DATABASE_URL=postgresql://plupool_user:your_secure_password@localhost:5432/plupool_db
-   
-   # Security
-   SECRET_KEY=your-secret-key-change-in-production
-   ALGORITHM=HS256
-   ACCESS_TOKEN_EXPIRE_MINUTES=30
-   
-   # CORS
-   ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
+1. Copy the example file and edit the values you need:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Make sure `DATABASE_URL` matches how you plan to run PostgreSQL (see the next section for a Docker-based option).
+
+Run PostgreSQL locally (Docker)
+
+If you do not have PostgreSQL installed natively, the repository ships with a ready-made Compose file:
+
+```bash
+docker compose up -d db
+```
+
+This will start a PostgreSQL 16 instance listening on `localhost:5432` and keep the data in the `postgres_data` volume. Update `.env` if you change the username, password, or database name. To verify the service is healthy, run `docker compose ps` or `docker compose logs db`.
 
 Run the application
 
-bash   python -m uvicorn app.main:app --reload
+```bash
+python -m uvicorn app.main:app --reload
+```
+
 The API will be available at http://127.0.0.1:8000
+
+Troubleshooting: connection refused
+
+- Ensure the PostgreSQL service is running (`brew services list`, `docker compose ps`, or `sudo service postgresql status`).
+- Confirm you can connect manually: `psql postgresql://user:password@localhost:5432/plupool_db`.
+- Double-check `DATABASE_URL` in `.env` matches the running host and port. When using Docker Compose from this repo the host should stay `localhost`; when running the API inside another container the host must be `db`.
+- Restart the API server after changing the database connection information so SQLAlchemy picks up the new value.
 API Documentation
 Once the server is running, access the interactive API documentation:
 
