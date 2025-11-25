@@ -40,3 +40,8 @@ class Booking(Base):
     service = relationship("Service", back_populates="bookings")
     pool_type = relationship("PoolType", back_populates="bookings")
     package = relationship("MaintenancePackage", back_populates="bookings")
+    comments = relationship(
+        "Comment",
+        back_populates="booking",
+        cascade="all, delete-orphan",
+    )
