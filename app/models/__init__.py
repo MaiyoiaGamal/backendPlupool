@@ -1,2 +1,19 @@
+# Import all models so SQLAlchemy can discover them
+from app.models.booking import Booking  # noqa: F401
+from app.models.category import Category  # noqa: F401
 from app.models.client_pool_profile import ClientPoolProfile  # noqa: F401
+from app.models.comment import Comment  # noqa: F401
+from app.models.contact_message import ContactMessage  # noqa: F401
+from app.models.maintenance_package import MaintenancePackage  # noqa: F401
+from app.models.notification import Notification  # noqa: F401
+from app.models.pool_type import PoolType  # noqa: F401
+from app.models.product import Product  # noqa: F401
+from app.models.service import Service  # noqa: F401
+from app.models.service_offer import ServiceOffer  # noqa: F401
+from app.models.technician_task import TechnicianTask  # noqa: F401
+from app.models.user import User  # noqa: F401
 from app.models.water_quality import WaterQualityReading  # noqa: F401
+from app.models.cart_item import CartItem  # noqa: F401
+from app.models.order import Order  # noqa: F401
+from app.models.order_item import OrderItem  # noqa: F401
+from app.models.search_history import SearchHistory  # noqa: F401

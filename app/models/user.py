@@ -45,3 +45,6 @@ class User(Base):
     technician_tasks = relationship(
         "TechnicianTask", back_populates="technician", cascade="all, delete-orphan"
     )
+    cart_items = relationship("CartItem", back_populates="user", cascade="all, delete-orphan")
+    orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
+    search_history = relationship("SearchHistory", back_populates="user", cascade="all, delete-orphan")

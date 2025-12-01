@@ -5,9 +5,11 @@ from typing import List, Optional
 from app.db.database import get_db
 from app.models.product import Product, ProductStatus, DiscountType
 from app.models.category import Category
+from app.models.search_history import SearchHistory
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductDetailResponse
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryResponse
-from app.core.dependencies import get_current_user
+from app.schemas.search import SearchHistoryResponse
+from app.core.dependencies import get_current_user, get_current_user_optional
 from app.models.user import User
 
 router = APIRouter()
@@ -101,25 +103,44 @@ def get_all_products(
     # Pagination
     skip: int = 0,
     limit: int = 20,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """
     الحصول على قائمة المنتجات مع إمكانيات:
-    - 🔍 البحث
+    - 🔍 البحث (يحفظ تاريخ البحث)
     - 🎯 التصفية (الفئة، السعر، التوصيل، إلخ)
     - 📊 الترتيب (حسب السعر، التقييم، الأحدث، إلخ)
     """
     
     query = db.query(Product)
     
-    # البحث
+    # البحث - إذا كان حرف واحد، نبحث عن المنتجات التي تبدأ به
     if search:
-        search_filter = or_(
-            Product.name_ar.ilike(f"%{search}%"),
-            Product.name_en.ilike(f"%{search}%"),
-            Product.description_ar.ilike(f"%{search}%")
-        )
+        search = search.strip()
+        if len(search) == 1:
+            # إذا كان حرف واحد، نبحث عن المنتجات التي تبدأ بهذا الحرف
+            search_filter = or_(
+                Product.name_ar.ilike(f"{search}%"),
+                Product.name_en.ilike(f"{search}%")
+            )
+        else:
+            # إذا كان أكثر من حرف، نبحث في الاسم والوصف
+            search_filter = or_(
+                Product.name_ar.ilike(f"%{search}%"),
+                Product.name_en.ilike(f"%{search}%"),
+                Product.description_ar.ilike(f"%{search}%")
+            )
         query = query.filter(search_filter)
+        
+        # حفظ تاريخ البحث إذا كان المستخدم مسجل دخول
+        if current_user and search:
+            search_history = SearchHistory(
+                user_id=current_user.id,
+                search_query=search
+            )
+            db.add(search_history)
+            db.commit()
     
     # التصفية
     if category_id:

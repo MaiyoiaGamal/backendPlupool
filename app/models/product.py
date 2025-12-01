@@ -58,6 +58,9 @@ class Product(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
+    # Relationships
+    cart_items = relationship("CartItem", back_populates="product", cascade="all, delete-orphan")
+    
     def __repr__(self):
         return f"<Product {self.name_ar}>"
     
