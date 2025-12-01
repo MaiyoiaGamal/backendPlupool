@@ -98,6 +98,7 @@ class CompanySignUp(BaseModel):
 class UserResponse(BaseModel):
     id: int
     phone: str
+    country_code: Optional[str] = None
     full_name: Optional[str] = None
     profile_image: Optional[str] = None
     role: UserRole

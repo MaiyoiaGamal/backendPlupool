@@ -15,6 +15,9 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
     الحصول على بيانات المستخدم الحالي
     Get current user profile
     """
+    # إضافة country_code إذا لم يكن موجوداً
+    if not hasattr(current_user, 'country_code') or current_user.country_code is None:
+        current_user.country_code = '+20'  # Default to Egypt
     return current_user
 
 @router.get("/", response_model=List[UserResponse])

@@ -17,3 +17,6 @@ from app.models.cart_item import CartItem  # noqa: F401
 from app.models.order import Order  # noqa: F401
 from app.models.order_item import OrderItem  # noqa: F401
 from app.models.search_history import SearchHistory  # noqa: F401
+from app.models.faq import FAQ  # noqa: F401
+from app.models.privacy_policy import PrivacyPolicySection  # noqa: F401
+from app.models.why_us import WhyUsStat, WhyUsFeature  # noqa: F401

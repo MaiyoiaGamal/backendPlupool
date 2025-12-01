@@ -4,6 +4,7 @@ from datetime import timedelta, datetime, timezone
 
 from app.core.config import settings
 from app.core.security import create_access_token
+from app.core.dependencies import get_current_active_user
 from app.db.database import get_db
 from app.models.user import User, UserRole
 from app.schemas.user import (
@@ -248,3 +249,19 @@ async def signup_company(data: CompanySignUp, db: Session = Depends(get_db)):
     )
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/logout")
+async def logout(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    تسجيل الخروج
+    Logout - Clear user session
+    """
+    # يمكن إضافة منطق إضافي هنا مثل حذف token من blacklist
+    # حالياً فقط نعيد رسالة نجاح
+    return {
+        "message": "تم تسجيل الخروج بنجاح",
+        "success": True
+    }

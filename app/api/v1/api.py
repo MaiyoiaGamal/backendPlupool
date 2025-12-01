@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     cart,
     orders,
     search,
+    account,
 )
 api_router = APIRouter()
 
@@ -38,6 +39,8 @@ api_router.include_router(cart.router, tags=["السلة - Cart"])
 api_router.include_router(orders.router, tags=["الطلبات - Orders"])
 # Search routes (البحث)
 api_router.include_router(search.router, tags=["البحث - Search"])
+# Account routes (حسابي)
+api_router.include_router(account.router, tags=["حسابي - My Account"])
 # Dashboards per role
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboards"])
 # Technician specific APIs

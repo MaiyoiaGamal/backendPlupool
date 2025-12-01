@@ -48,6 +48,9 @@ from app.models.technician_task import (
 from app.models.client_pool_profile import ClientPoolProfile
 from app.models.user import User
 from app.models.water_quality import WaterQualityReading
+from app.models.faq import FAQ
+from app.models.privacy_policy import PrivacyPolicySection
+from app.models.why_us import WhyUsStat, WhyUsFeature
 
 logger = logging.getLogger("plupool.seed")
 
@@ -1084,6 +1087,197 @@ def seed_contact_messages(session: Session) -> int:
     return created
 
 
+def seed_faqs(session: Session) -> int:
+    faqs_data = [
+        {
+            "question_ar": "ازاي أشوف المهام المطلوبة مني خلال الأسبوع؟",
+            "question_en": "How do I see my required tasks for the week?",
+            "answer_ar": "يمكنك عرض المهام المطلوبة منك من خلال قسم 'المهام' في التطبيق. ستجد قائمة بجميع المهام المجدولة مع تفاصيل كل مهمة مثل التاريخ والوقت والموقع.",
+            "answer_en": "You can view your required tasks through the 'Tasks' section in the app. You'll find a list of all scheduled tasks with details like date, time, and location.",
+            "category": "general",
+            "sort_order": 1,
+        },
+        {
+            "question_ar": "ازاي أتواصل مع الدعم؟",
+            "question_en": "How do I contact support?",
+            "answer_ar": "يمكنك التواصل مع فريق الدعم من خلال قسم 'مركز المساعدة' في حسابك. يمكنك إرسال رسالة مباشرة أو الاتصال بنا على الرقم المخصص للدعم.",
+            "answer_en": "You can contact the support team through the 'Help Center' section in your account. You can send a direct message or call us on the dedicated support number.",
+            "category": "general",
+            "sort_order": 2,
+        },
+        {
+            "question_ar": "ازاي أدخل على ملف كل عميل؟",
+            "question_en": "How do I access each customer's profile?",
+            "answer_ar": "يمكنك الوصول إلى ملف العميل من خلال قائمة المهام. اضغط على المهمة المخصصة للعميل وستجد رابط لملفه الشخصي مع جميع التفاصيل المهمة.",
+            "answer_en": "You can access the customer's profile through the tasks list. Click on the task assigned to the customer and you'll find a link to their profile with all important details.",
+            "category": "technical",
+            "sort_order": 3,
+        },
+        {
+            "question_ar": "فين بلاقي تاريخ مشترياتي؟",
+            "question_en": "Where do I find my purchase history?",
+            "answer_ar": "يمكنك العثور على تاريخ مشترياتك في قسم 'المتجر' ثم 'مشترياتي'. ستجد قائمة بجميع الطلبات السابقة مع تفاصيل كل طلب.",
+            "answer_en": "You can find your purchase history in the 'Store' section then 'My Purchases'. You'll find a list of all previous orders with details of each order.",
+            "category": "account",
+            "sort_order": 4,
+        },
+        {
+            "question_ar": "كيف أغير رقم الهاتف؟",
+            "question_en": "How do I change my phone number?",
+            "answer_ar": "يمكنك تغيير رقم الهاتف من خلال قسم 'معلومات الحساب' في حسابك. اضغط على زر التعديل بجانب رقم الهاتف وأدخل الرقم الجديد. سيتم إرسال رمز تحقق للرقم الجديد.",
+            "answer_en": "You can change your phone number through the 'Account Information' section in your account. Click the edit button next to the phone number and enter the new number. A verification code will be sent to the new number.",
+            "category": "account",
+            "sort_order": 5,
+        },
+    ]
+
+    created = 0
+    for payload in faqs_data:
+        filters = {"question_ar": payload["question_ar"]}
+        existing = session.query(FAQ).filter_by(**filters).first()
+        if existing:
+            continue
+        faq = FAQ(**payload)
+        session.add(faq)
+        created += 1
+    return created
+
+
+def seed_privacy_sections(session: Session) -> int:
+    sections_data = [
+        {
+            "title_ar": "البيانات التي نجمعها",
+            "title_en": "Data We Collect",
+            "content_ar": "نجمع المعلومات الضرورية لتقديم خدماتنا بشكل فعال، بما في ذلك معلومات الحساب، بيانات الموقع، وسجل المهام والطلبات.",
+            "content_en": "We collect necessary information to provide our services effectively, including account information, location data, and task and order history.",
+            "sort_order": 1,
+        },
+        {
+            "title_ar": "كيف نحمي معلوماتك؟",
+            "title_en": "How Do We Protect Your Information?",
+            "content_ar": "نستخدم تقنيات التشفير المتقدمة وحماية قوية للبيانات لضمان أمان معلوماتك. جميع البيانات محمية وفقاً لأعلى معايير الأمان.",
+            "content_en": "We use advanced encryption technologies and strong data protection to ensure the security of your information. All data is protected according to the highest security standards.",
+            "sort_order": 2,
+        },
+        {
+            "title_ar": "عدم مشاركة البيانات",
+            "title_en": "Do Not Share Data",
+            "content_ar": "نحن لا نشارك بياناتك الشخصية مع أطراف ثالثة دون موافقتك الصريحة. بياناتك تبقى خاصة ومحمية.",
+            "content_en": "We do not share your personal data with third parties without your explicit consent. Your data remains private and protected.",
+            "sort_order": 3,
+        },
+        {
+            "title_ar": "استخدام البيانات",
+            "title_en": "Data Usage",
+            "content_ar": "نستخدم بياناتك فقط لتحسين خدماتنا وتقديم تجربة أفضل لك. جميع المعلومات التي يتم جمعها تستخدم فقط لتقديم خدمات أفضل وتجربة أكثر دقة داخل التطبيق.",
+            "content_en": "We use your data only to improve our services and provide you with a better experience. All collected information is used only to provide better services and a more accurate experience within the application.",
+            "sort_order": 4,
+        },
+        {
+            "title_ar": "التحكم الكامل في حسابك",
+            "title_en": "Full Control Over Your Account",
+            "content_ar": "لديك تحكم كامل في حسابك. يمكنك تحديث معلوماتك، حذف حسابك، أو طلب تصدير بياناتك في أي وقت.",
+            "content_en": "You have full control over your account. You can update your information, delete your account, or request data export at any time.",
+            "sort_order": 5,
+        },
+        {
+            "title_ar": "التحديثات",
+            "title_en": "Updates",
+            "content_ar": "قد نقوم بتحديث سياسة الخصوصية من وقت لآخر. سنقوم بإعلامك بأي تغييرات مهمة عبر التطبيق.",
+            "content_en": "We may update the privacy policy from time to time. We will notify you of any important changes through the app.",
+            "sort_order": 6,
+        },
+    ]
+
+    created = 0
+    for payload in sections_data:
+        filters = {"title_ar": payload["title_ar"]}
+        existing = session.query(PrivacyPolicySection).filter_by(**filters).first()
+        if existing:
+            continue
+        section = PrivacyPolicySection(**payload)
+        session.add(section)
+        created += 1
+    return created
+
+
+def seed_why_us_stats(session: Session) -> int:
+    stats_data = [
+        {
+            "stat_type": "rating",
+            "value": 4.8,
+            "label_ar": "التقييم",
+            "label_en": "Rating",
+            "icon": "star",
+        },
+        {
+            "stat_type": "experience_years",
+            "value": 10.0,
+            "label_ar": "سنوات خبرة",
+            "label_en": "Years of Experience",
+            "icon": "building",
+        },
+        {
+            "stat_type": "completed_projects",
+            "value": 500.0,
+            "label_ar": "مشروع منجز",
+            "label_en": "Completed Projects",
+            "icon": "checkmark",
+        },
+    ]
+
+    created = 0
+    for payload in stats_data:
+        filters = {"stat_type": payload["stat_type"]}
+        existing = session.query(WhyUsStat).filter_by(**filters).first()
+        if existing:
+            continue
+        stat = WhyUsStat(**payload)
+        session.add(stat)
+        created += 1
+    return created
+
+
+def seed_why_us_features(session: Session) -> int:
+    features_data = [
+        {
+            "title_ar": "تنظيم المهام الأسبوعية",
+            "title_en": "Weekly Task Organization",
+            "description_ar": "نوفر لك جدول أعمال منظم يساعدك على إدارة وقتك بكفاءة وتلبية احتياجات العملاء في الوقت المحدد.",
+            "description_en": "We provide you with an organized work schedule that helps you manage your time efficiently and meet customer needs on time.",
+            "icon": "calendar",
+            "sort_order": 1,
+        },
+        {
+            "title_ar": "تقارير أداء شهرية",
+            "title_en": "Monthly Performance Reports",
+            "description_ar": "تحصل على تقارير شهرية مفصلة عن أدائك تساعدك على تحسين جودة خدماتك وزيادة دخلك.",
+            "description_en": "You get detailed monthly reports on your performance that help you improve the quality of your services and increase your income.",
+            "icon": "chart",
+            "sort_order": 2,
+        },
+        {
+            "title_ar": "دعم فني مستمر",
+            "title_en": "Continuous Technical Support",
+            "description_ar": "فريق دعم فني متاح على مدار الساعة لمساعدتك في أي استفسارات أو مشاكل تقنية تواجهها.",
+            "description_en": "A technical support team available around the clock to assist you with any inquiries or technical issues you face.",
+            "icon": "headset",
+            "sort_order": 3,
+        },
+    ]
+
+    created = 0
+    for payload in features_data:
+        filters = {"title_ar": payload["title_ar"]}
+        existing = session.query(WhyUsFeature).filter_by(**filters).first()
+        if existing:
+            continue
+        feature = WhyUsFeature(**payload)
+        session.add(feature)
+        created += 1
+    return created
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     logger.info("Creating tables (if needed)...")
@@ -1135,6 +1329,11 @@ def main() -> None:
             )
 
             summary["contact_messages"] = seed_contact_messages(session)
+
+            summary["faqs"] = seed_faqs(session)
+            summary["privacy_sections"] = seed_privacy_sections(session)
+            summary["why_us_stats"] = seed_why_us_stats(session)
+            summary["why_us_features"] = seed_why_us_features(session)
 
             session.commit()
         except Exception as exc:  # pragma: no cover - utility script

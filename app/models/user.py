@@ -12,6 +12,7 @@ class User(Base):
     
     # Basic Info (All roles)
     phone = Column(String, unique=True, index=True, nullable=False)
+    country_code = Column(String(5), default="+20", nullable=True)  # رمز الدولة
     full_name = Column(String, nullable=True)
     profile_image = Column(String, nullable=True)  # URL or path
     role = Column(SQLAEnum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False)
