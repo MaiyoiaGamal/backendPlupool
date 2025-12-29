@@ -115,3 +115,13 @@ Once the server is running, access the interactive API documentation:
 
 Swagger UI: http://127.0.0.1:8000/docs
 ReDoc: http://127.0.0.1:8000/redoc
+
+Misc (Generate a Word file from question photos)
+
+- Put your images anywhere in the repo (e.g. in a folder called `inputs/`)
+- Run:
+
+  bash   python3 scripts/make_questions_doc.py --out "اسئلة.docx" inputs/ورقة1.jpg inputs/ورقة2.jpg
+
+- Output:
+  - `اسئلة.docx` will be created in the current directory (or the path you pass to `--out`)
