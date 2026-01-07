@@ -68,9 +68,29 @@ class FAQResponse(BaseModel):
     answer_ar: str
     answer_en: Optional[str]
     category: Optional[str]
+    sort_order: Optional[int] = 0
+    is_active: Optional[bool] = True
     
     class Config:
         from_attributes = True
+
+class FAQCreate(BaseModel):
+    question_ar: str = Field(..., min_length=1, max_length=500)
+    question_en: Optional[str] = Field(None, max_length=500)
+    answer_ar: str = Field(..., min_length=1)
+    answer_en: Optional[str] = None
+    category: Optional[str] = Field(None, max_length=50)
+    sort_order: Optional[int] = 0
+    is_active: Optional[bool] = True
+
+class FAQUpdate(BaseModel):
+    question_ar: Optional[str] = Field(None, min_length=1, max_length=500)
+    question_en: Optional[str] = Field(None, max_length=500)
+    answer_ar: Optional[str] = Field(None, min_length=1)
+    answer_en: Optional[str] = None
+    category: Optional[str] = Field(None, max_length=50)
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
 
 # Privacy Policy Schemas
 class PrivacySectionResponse(BaseModel):
@@ -79,12 +99,31 @@ class PrivacySectionResponse(BaseModel):
     title_en: Optional[str]
     content_ar: str
     content_en: Optional[str]
+    sort_order: Optional[int] = 0
+    is_active: Optional[bool] = True
     
     class Config:
         from_attributes = True
 
+class PrivacySectionCreate(BaseModel):
+    title_ar: str = Field(..., min_length=1, max_length=200)
+    title_en: Optional[str] = Field(None, max_length=200)
+    content_ar: str = Field(..., min_length=1)
+    content_en: Optional[str] = None
+    sort_order: Optional[int] = 0
+    is_active: Optional[bool] = True
+
+class PrivacySectionUpdate(BaseModel):
+    title_ar: Optional[str] = Field(None, min_length=1, max_length=200)
+    title_en: Optional[str] = Field(None, max_length=200)
+    content_ar: Optional[str] = Field(None, min_length=1)
+    content_en: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
+
 # Why Us Schemas
 class WhyUsStatResponse(BaseModel):
+    id: int
     stat_type: str
     value: float
     label_ar: str
@@ -94,6 +133,20 @@ class WhyUsStatResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class WhyUsStatCreate(BaseModel):
+    stat_type: str = Field(..., max_length=50)
+    value: float = Field(..., ge=0)
+    label_ar: str = Field(..., max_length=100)
+    label_en: Optional[str] = Field(None, max_length=100)
+    icon: Optional[str] = Field(None, max_length=50)
+
+class WhyUsStatUpdate(BaseModel):
+    stat_type: Optional[str] = Field(None, max_length=50)
+    value: Optional[float] = Field(None, ge=0)
+    label_ar: Optional[str] = Field(None, max_length=100)
+    label_en: Optional[str] = Field(None, max_length=100)
+    icon: Optional[str] = Field(None, max_length=50)
+
 class WhyUsFeatureResponse(BaseModel):
     id: int
     title_ar: str
@@ -101,9 +154,29 @@ class WhyUsFeatureResponse(BaseModel):
     description_ar: str
     description_en: Optional[str]
     icon: Optional[str]
+    sort_order: Optional[int] = 0
+    is_active: Optional[bool] = True
     
     class Config:
         from_attributes = True
+
+class WhyUsFeatureCreate(BaseModel):
+    title_ar: str = Field(..., min_length=1, max_length=200)
+    title_en: Optional[str] = Field(None, max_length=200)
+    description_ar: str = Field(..., min_length=1)
+    description_en: Optional[str] = None
+    icon: Optional[str] = Field(None, max_length=50)
+    sort_order: Optional[int] = 0
+    is_active: Optional[bool] = True
+
+class WhyUsFeatureUpdate(BaseModel):
+    title_ar: Optional[str] = Field(None, min_length=1, max_length=200)
+    title_en: Optional[str] = Field(None, max_length=200)
+    description_ar: Optional[str] = Field(None, min_length=1)
+    description_en: Optional[str] = None
+    icon: Optional[str] = Field(None, max_length=50)
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
 
 class WhyUsResponse(BaseModel):
     stats: List[WhyUsStatResponse]

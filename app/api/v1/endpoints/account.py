@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
@@ -15,6 +15,7 @@ from app.schemas.account import (
     WhyUsFeatureResponse, DeleteAccountConfirm, DeleteAccountResponse
 )
 from app.models.enums import UserRole
+from app.services.upload_service import UploadService
 
 router = APIRouter()
 
@@ -47,6 +48,44 @@ async def get_profile(
         is_phone_verified=current_user.is_phone_verified,
         created_at=current_user.created_at
     )
+
+# ============= Upload Profile Image =============
+
+@router.post("/account/profile/upload-image")
+async def upload_profile_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    رفع صورة البروفايل
+    Upload profile image
+    """
+    try:
+        # حذف الصورة القديمة إذا كانت موجودة
+        if current_user.profile_image:
+            UploadService.delete_image(current_user.profile_image)
+        
+        # رفع الصورة الجديدة
+        image_url = await UploadService.upload_profile_image(file, current_user.id)
+        
+        # تحديث profile_image في الداتابيس
+        current_user.profile_image = image_url
+        db.commit()
+        db.refresh(current_user)
+        
+        return {
+            "message": "تم رفع الصورة بنجاح",
+            "image_url": image_url,
+            "success": True
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"حدث خطأ أثناء رفع الصورة: {str(e)}"
+        )
 
 # ============= Technician Profile =============
 
@@ -104,6 +143,15 @@ async def update_technician_profile(
     # معالجة skills - تحويل من list إلى comma-separated string
     if 'skills' in update_data and update_data['skills'] is not None:
         update_data['skills'] = ", ".join(update_data['skills'])
+    
+    # معالجة profile_image: إذا كان string URL، نحفظه مباشرة
+    # إذا كان file، يجب استخدام endpoint رفع الصور المنفصل
+    if 'profile_image' in update_data:
+        # إذا كان URL صحيح، نحفظه
+        # إذا كان base64 أو file، يجب استخدام /upload-image endpoint
+        if update_data['profile_image'] and not update_data['profile_image'].startswith('http'):
+            # إذا لم يكن URL، نحذف الحقل (يجب استخدام upload endpoint)
+            update_data.pop('profile_image')
     
     # تحديث الحقول
     for field, value in update_data.items():

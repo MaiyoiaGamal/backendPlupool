@@ -5,6 +5,7 @@ from datetime import timedelta, datetime, timezone
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.core.dependencies import get_current_active_user
+from app.core.validators import Validators
 from app.db.database import get_db
 from app.models.user import User, UserRole
 from app.schemas.user import (
@@ -13,6 +14,7 @@ from app.schemas.user import (
     UserResponse, GuestRequest
 )
 from app.schemas.token import Token
+from app.schemas.auth import LogoutResponse
 from app.services.otp_service import OTPService
 
 router = APIRouter()
@@ -46,17 +48,24 @@ async def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
     otp_code = OTPService.generate_otp()
     otp_expiry = OTPService.get_expiry_time(minutes=5)
     
+    # فصل كود الدولة عن رقم التليفون
+    phone_number, country_code = Validators.parse_phone_number(request.phone)
+    
     # Check if user exists (login) or new (signup)
-    user = db.query(User).filter(User.phone == request.phone).first()
+    user = db.query(User).filter(User.phone == phone_number).first()
     
     if user:
         # Existing user - update OTP for login
         user.otp_code = otp_code
         user.otp_expires_at = otp_expiry
+        # تحديث كود الدولة إذا تغير
+        if user.country_code != country_code:
+            user.country_code = country_code
     else:
         # New user - create temporary record
         user = User(
-            phone=request.phone,
+            phone=phone_number,  # رقم التليفون بدون كود الدولة
+            country_code=country_code,  # كود الدولة منفصل
             role=UserRole.GUEST,  # Will be updated during signup
             otp_code=otp_code,
             otp_expires_at=otp_expiry
@@ -65,12 +74,13 @@ async def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
     
     db.commit()
     
-    # Send OTP via WhatsApp
-    await OTPService.send_whatsapp_otp(request.phone, otp_code)
+    # Send OTP via WhatsApp (استخدام الرقم الكامل مع كود الدولة للإرسال)
+    full_phone = f"{country_code}{phone_number}" if country_code else phone_number
+    await OTPService.send_whatsapp_otp(full_phone, otp_code)
     
     return SendOTPResponse(
         message="تم إرسال رمز التحقق عبر واتساب",
-        phone=request.phone,
+        phone=phone_number,  # إرجاع الرقم بدون كود الدولة
         expires_in=300  # 5 minutes
     )
 
@@ -80,7 +90,10 @@ async def verify_otp_login(request: VerifyOTPRequest, db: Session = Depends(get_
     تسجيل الدخول - التحقق من رمز OTP
     Login - Verify OTP code
     """
-    user = db.query(User).filter(User.phone == request.phone).first()
+    # فصل كود الدولة عن رقم التليفون
+    phone_number, _ = Validators.parse_phone_number(request.phone)
+    
+    user = db.query(User).filter(User.phone == phone_number).first()
     
     if not user:
         raise HTTPException(
@@ -123,7 +136,10 @@ async def signup_technician(data: TechnicianSignUp, db: Session = Depends(get_db
     تسجيل فني صيانة
     Sign up as Technician
     """
-    user = db.query(User).filter(User.phone == data.phone).first()
+    # فصل كود الدولة عن رقم التليفون
+    phone_number, country_code = Validators.parse_phone_number(data.phone)
+    
+    user = db.query(User).filter(User.phone == phone_number).first()
     
     if not user:
         raise HTTPException(
@@ -147,6 +163,7 @@ async def signup_technician(data: TechnicianSignUp, db: Session = Depends(get_db
     user.address = data.address
     user.skills = ",".join(data.skills)  # Store as comma-separated
     user.years_of_experience = data.years_of_experience
+    user.country_code = country_code  # تحديث كود الدولة
     user.is_phone_verified = True
     user.last_login = datetime.now(timezone.utc)
     user.otp_code = None
@@ -171,7 +188,10 @@ async def signup_pool_owner(data: PoolOwnerSignUp, db: Session = Depends(get_db)
     تسجيل صاحب حمام
     Sign up as Pool Owner
     """
-    user = db.query(User).filter(User.phone == data.phone).first()
+    # فصل كود الدولة عن رقم التليفون
+    phone_number, country_code = Validators.parse_phone_number(data.phone)
+    
+    user = db.query(User).filter(User.phone == phone_number).first()
     
     if not user:
         raise HTTPException(
@@ -193,6 +213,7 @@ async def signup_pool_owner(data: PoolOwnerSignUp, db: Session = Depends(get_db)
     user.latitude = data.latitude
     user.longitude = data.longitude
     user.address = data.address
+    user.country_code = country_code  # تحديث كود الدولة
     user.is_phone_verified = True
     user.last_login = datetime.now(timezone.utc)
     user.otp_code = None
@@ -215,7 +236,10 @@ async def signup_company(data: CompanySignUp, db: Session = Depends(get_db)):
     تسجيل ممثل شركة
     Sign up as Company Representative
     """
-    user = db.query(User).filter(User.phone == data.phone).first()
+    # فصل كود الدولة عن رقم التليفون
+    phone_number, country_code = Validators.parse_phone_number(data.phone)
+    
+    user = db.query(User).filter(User.phone == phone_number).first()
     
     if not user:
         raise HTTPException(
@@ -234,6 +258,7 @@ async def signup_company(data: CompanySignUp, db: Session = Depends(get_db)):
     user.full_name = data.full_name
     user.profile_image = data.profile_image
     user.role = UserRole.COMPANY
+    user.country_code = country_code  # تحديث كود الدولة
     user.is_phone_verified = True
     user.last_login = datetime.now(timezone.utc)
     user.otp_code = None
@@ -250,7 +275,7 @@ async def signup_company(data: CompanySignUp, db: Session = Depends(get_db)):
     
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.post("/logout")
+@router.post("/logout", response_model=LogoutResponse)
 async def logout(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
@@ -258,10 +283,17 @@ async def logout(
     """
     تسجيل الخروج
     Logout - Clear user session
+    
+    ملاحظة: في نظام JWT بدون blacklist، الـ token يبقى صالح حتى انتهاء صلاحيته.
+    يمكن إضافة token blacklist لاحقاً لتعطيل الـ tokens فوراً.
     """
-    # يمكن إضافة منطق إضافي هنا مثل حذف token من blacklist
-    # حالياً فقط نعيد رسالة نجاح
-    return {
-        "message": "تم تسجيل الخروج بنجاح",
-        "success": True
-    }
+    # يمكن إضافة منطق إضافي هنا مثل:
+    # - إضافة token إلى blacklist (إذا أضفنا نظام blacklist)
+    # - حذف refresh tokens
+    # - تحديث last_logout timestamp
+    
+    return LogoutResponse(
+        message="تم تسجيل الخروج بنجاح",
+        success=True,
+        user_id=current_user.id
+    )

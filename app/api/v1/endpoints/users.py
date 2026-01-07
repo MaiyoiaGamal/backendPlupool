@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import desc, asc
+from typing import List, Optional
 
 from app.core.dependencies import get_current_active_user
 from app.db.database import get_db
@@ -24,14 +25,29 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 async def read_users(
     skip: int = 0,
     limit: int = 100,
+    sort_by: Optional[str] = Query("created_at", description="الترتيب حسب: created_at, id, full_name"),
+    order: Optional[str] = Query("desc", description="ترتيب: asc أو desc"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
-    الحصول على قائمة المستخدمين
-    Get list of users (admin or for matching services)
+    الحصول على قائمة المستخدمين مع إمكانية الترتيب حسب تاريخ الإنشاء
+    Get list of users with sorting by creation date (for admin)
     """
-    users = db.query(User).offset(skip).limit(limit).all()
+    query = db.query(User)
+    
+    # الترتيب حسب الحقل المحدد
+    if sort_by == "created_at":
+        query = query.order_by(desc(User.created_at) if order == "desc" else asc(User.created_at))
+    elif sort_by == "id":
+        query = query.order_by(desc(User.id) if order == "desc" else asc(User.id))
+    elif sort_by == "full_name":
+        query = query.order_by(desc(User.full_name) if order == "desc" else asc(User.full_name))
+    else:
+        # افتراضي: الترتيب حسب تاريخ الإنشاء (الأحدث أولاً)
+        query = query.order_by(desc(User.created_at))
+    
+    users = query.offset(skip).limit(limit).all()
     return users
 
 @router.get("/{user_id}", response_model=UserResponse)

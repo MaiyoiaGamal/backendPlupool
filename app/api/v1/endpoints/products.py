@@ -9,7 +9,7 @@ from app.models.search_history import SearchHistory
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductDetailResponse
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryResponse
 from app.schemas.search import SearchHistoryResponse
-from app.core.dependencies import get_current_user, get_current_user_optional
+from app.core.dependencies import get_current_user, get_current_user_optional, get_current_admin
 from app.models.user import User
 
 router = APIRouter()
@@ -35,10 +35,9 @@ def get_all_categories(
 def create_category(
     category: CategoryCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """إضافة فئة جديدة (للأدمن فقط)"""
-    # TODO: التحقق من أن المستخدم أدمن
     
     new_category = Category(**category.dict())
     db.add(new_category)
@@ -51,7 +50,7 @@ def update_category(
     category_id: int,
     category: CategoryUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """تحديث فئة (للأدمن فقط)"""
     db_category = db.query(Category).filter(Category.id == category_id).first()
@@ -70,7 +69,7 @@ def update_category(
 def delete_category(
     category_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """حذف فئة (للأدمن فقط)"""
     db_category = db.query(Category).filter(Category.id == category_id).first()
@@ -207,10 +206,9 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
 def create_product(
     product: ProductCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """إضافة منتج جديد (للأدمن فقط)"""
-    # TODO: التحقق من أن المستخدم أدمن
     
     new_product = Product(**product.dict())
     
@@ -227,7 +225,7 @@ def update_product(
     product_id: int,
     product: ProductUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """تحديث منتج (للأدمن فقط)"""
     db_product = db.query(Product).filter(Product.id == product_id).first()
@@ -249,7 +247,7 @@ def update_product(
 def delete_product(
     product_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """حذف منتج (للأدمن فقط)"""
     db_product = db.query(Product).filter(Product.id == product_id).first()

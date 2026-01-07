@@ -8,7 +8,7 @@ from app.models.service import Service
 from app.models.pool_type import PoolType
 from app.models.maintenance_package import MaintenancePackage
 from app.schemas.booking import BookingCreate, BookingUpdate, BookingResponse, BookingDetailResponse
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_admin
 from app.models.user import User
 
 router = APIRouter()
@@ -150,10 +150,9 @@ def get_all_bookings_admin(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """الحصول على قائمة بجميع الحجوزات (للأدمن فقط)"""
-    # TODO: التحقق من أن المستخدم أدمن
     
     query = db.query(Booking)
     
@@ -186,10 +185,9 @@ def get_all_bookings_admin(
 @router.get("/admin/bookings/pending", response_model=List[BookingDetailResponse], summary="الحجوزات المعلقة (أدمن)")
 def get_pending_bookings_admin(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """الحصول على الحجوزات المعلقة التي تحتاج موافقة (للأدمن فقط)"""
-    # TODO: التحقق من أن المستخدم أدمن
     
     bookings = db.query(Booking).filter(
         Booking.status == BookingStatus.PENDING
@@ -217,7 +215,7 @@ def update_booking_admin(
     booking_id: int,
     booking_update: BookingUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """
     تحديث حالة الحجز وإضافة ملاحظات (للأدمن فقط)
@@ -248,10 +246,9 @@ def update_booking_admin(
 def delete_booking_admin(
     booking_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """حذف حجز (للأدمن فقط)"""
-    # TODO: التحقق من أن المستخدم أدمن
     
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:

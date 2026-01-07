@@ -12,7 +12,7 @@ from app.schemas.maintenance_package import (
     MaintenancePackageUpdate, 
     MaintenancePackageResponse
 )
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_admin
 from app.models.user import User
 
 router = APIRouter()
@@ -50,10 +50,9 @@ def get_service(service_id: int, db: Session = Depends(get_db)):
 def create_service(
     service: ServiceCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """إضافة خدمة جديدة (للأدمن فقط)"""
-    # TODO: تحقق من أن المستخدم أدمن
     
     new_service = Service(**service.dict())
     db.add(new_service)
@@ -66,7 +65,7 @@ def update_service(
     service_id: int,
     service: ServiceUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """تحديث بيانات خدمة (للأدمن فقط)"""
     db_service = db.query(Service).filter(Service.id == service_id).first()
@@ -88,7 +87,7 @@ def update_service(
 def delete_service(
     service_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """حذف خدمة (للأدمن فقط)"""
     db_service = db.query(Service).filter(Service.id == service_id).first()
@@ -134,7 +133,7 @@ def get_pool_type(pool_type_id: int, db: Session = Depends(get_db)):
 def create_pool_type(
     pool_type: PoolTypeCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """إضافة نوع مسبح جديد (للأدمن فقط)"""
     new_pool_type = PoolType(**pool_type.dict())
@@ -148,7 +147,7 @@ def update_pool_type(
     pool_type_id: int,
     pool_type: PoolTypeUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """تحديث بيانات نوع مسبح (للأدمن فقط)"""
     db_pool_type = db.query(PoolType).filter(PoolType.id == pool_type_id).first()
@@ -170,7 +169,7 @@ def update_pool_type(
 def delete_pool_type(
     pool_type_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """حذف نوع مسبح (للأدمن فقط)"""
     db_pool_type = db.query(PoolType).filter(PoolType.id == pool_type_id).first()
@@ -221,7 +220,7 @@ def get_maintenance_package(package_id: int, db: Session = Depends(get_db)):
 def create_maintenance_package(
     package: MaintenancePackageCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """إضافة باقة صيانة جديدة (للأدمن فقط)"""
     new_package = MaintenancePackage(**package.dict())
@@ -235,7 +234,7 @@ def update_maintenance_package(
     package_id: int,
     package: MaintenancePackageUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """تحديث بيانات باقة (للأدمن فقط)"""
     db_package = db.query(MaintenancePackage).filter(MaintenancePackage.id == package_id).first()
@@ -257,7 +256,7 @@ def update_maintenance_package(
 def delete_maintenance_package(
     package_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """حذف باقة (للأدمن فقط)"""
     db_package = db.query(MaintenancePackage).filter(MaintenancePackage.id == package_id).first()

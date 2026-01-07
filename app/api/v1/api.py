@@ -5,7 +5,6 @@ from app.api.v1.endpoints import (
     users,
     contact,
     notifications,
-    suggestions,
     service,
     booking,
     products,
@@ -16,6 +15,7 @@ from app.api.v1.endpoints import (
     orders,
     search,
     account,
+    admin,
 )
 api_router = APIRouter()
 
@@ -24,7 +24,6 @@ api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(contact.router, prefix="/contact", tags=["Contact"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
-api_router.include_router(suggestions.router, prefix="/suggestions", tags=["Suggestions"])
 # Services routes (خدمات - أنواع المسابح - الباقات)
 api_router.include_router (service.router,prefix="/service",tags=["الخدمات - Services"])
 # Offers routes ( العروض علي الخدمات) 
@@ -45,3 +44,5 @@ api_router.include_router(account.router, tags=["حسابي - My Account"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboards"])
 # Technician specific APIs
 api_router.include_router(technician_tasks.router, prefix="/technician_tasks", tags=["Technician"])
+# Admin APIs (للأدمن فقط - التحكم من الباك اند)
+api_router.include_router(admin.router, tags=["Admin - إدارة النظام"])

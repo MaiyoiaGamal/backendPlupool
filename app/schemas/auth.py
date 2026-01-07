@@ -2,6 +2,11 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from app.core.validators import Validators, ValidationError
 
+class LogoutResponse(BaseModel):
+    message: str
+    success: bool
+    user_id: Optional[int] = None
+
 class SignUpRequest(BaseModel):
     phone: str = Field(..., description="رقم الموبايل")
     email: Optional[str] = None

@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import Optional, Tuple
 
 class ValidationError(Exception):
     """Custom validation error"""
@@ -37,18 +37,80 @@ class Validators:
         return clean_value
     
     @staticmethod
-    def phone(value: Optional[str], min_digits: int = 8, max_digits: int = 15) -> str:
-        """Validate phone number (digits only, length 8-15)"""
+    def parse_phone_number(value: Optional[str]) -> Tuple[str, str]:
+        """
+        فصل كود الدولة عن رقم التليفون
+        Returns: (phone_number, country_code)
+        Examples:
+            "+20 1234567890" -> ("1234567890", "+20")
+            "+201234567890" -> ("1234567890", "+20")
+            "1234567890" -> ("1234567890", "+20")  # default
+        """
         if Validators._is_null_or_empty(value):
             raise ValidationError("رقم الموبايل مطلوب")
         
-        # Extract only digits
-        digits = re.sub(r'\D', '', value)
+        value = value.strip()
+        
+        # كودات الدول الشائعة (يمكن إضافة المزيد)
+        country_codes = {
+            "+20": "+20",  # مصر
+            "+966": "+966",  # السعودية
+            "+971": "+971",  # الإمارات
+            "+965": "+965",  # الكويت
+            "+974": "+974",  # قطر
+            "+973": "+973",  # البحرين
+            "+968": "+968",  # عمان
+            "+961": "+961",  # لبنان
+            "+962": "+962",  # الأردن
+            "+212": "+212",  # المغرب
+            "+213": "+213",  # الجزائر
+            "+216": "+216",  # تونس
+            "+249": "+249",  # السودان
+            "+964": "+964",  # العراق
+            "+963": "+963",  # سوريا
+            "+967": "+967",  # اليمن
+            "+218": "+218",  # ليبيا
+        }
+        
+        # البحث عن كود الدولة في بداية الرقم
+        for code in country_codes.keys():
+            # مع مسافة: "+20 1234567890"
+            if value.startswith(code + " "):
+                phone_number = value[len(code) + 1:].strip()
+                # إزالة أي أحرف غير رقمية من الرقم
+                phone_number = re.sub(r'\D', '', phone_number)
+                return (phone_number, code)
+            # بدون مسافة: "+201234567890"
+            elif value.startswith(code):
+                phone_number = value[len(code):].strip()
+                # إزالة أي أحرف غير رقمية من الرقم
+                phone_number = re.sub(r'\D', '', phone_number)
+                return (phone_number, code)
+        
+        # إذا لم يوجد كود دولة، نستخدم القيمة الافتراضية
+        # إزالة أي أحرف غير رقمية من الرقم
+        phone_number = re.sub(r'\D', '', value)
+        return (phone_number, "+20")
+    
+    @staticmethod
+    def phone(value: Optional[str], min_digits: int = 8, max_digits: int = 15) -> str:
+        """
+        Validate phone number and return clean phone (without country code)
+        رقم التليفون يجب أن يكون بدون كود الدولة
+        """
+        if Validators._is_null_or_empty(value):
+            raise ValidationError("رقم الموبايل مطلوب")
+        
+        # فصل كود الدولة عن الرقم
+        phone_number, _ = Validators.parse_phone_number(value)
+        
+        # Extract only digits from phone number
+        digits = re.sub(r'\D', '', phone_number)
         
         if len(digits) < min_digits or len(digits) > max_digits:
             raise ValidationError(f"رقم الموبايل غير صحيح (يجب أن يكون بين {min_digits} و {max_digits} رقم)")
         
-        return value.strip()
+        return digits
     
     @staticmethod
     def email(value: Optional[str]) -> str:

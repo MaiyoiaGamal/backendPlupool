@@ -67,6 +67,12 @@ async def get_current_technician(
 ) -> User:
     return _ensure_role(current_user , (UserRole.TECHNICIAN,))
 
+async def get_current_admin(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    """التحقق من أن المستخدم أدمن - يتم التحقق من الباك اند فقط"""
+    return _ensure_role(current_user, (UserRole.ADMIN,))
+
 async def get_current_user_optional(
     token: Optional[str] = Depends(oauth2_scheme_optional),
     db: Session = Depends(get_db)

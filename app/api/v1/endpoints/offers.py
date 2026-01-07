@@ -7,7 +7,7 @@ from app.db.database import get_db
 from app.models.service_offer import ServiceOffer, OfferStatus, DiscountType
 from app.models.service import Service
 from app.schemas.service_offer import ServiceOfferCreate, ServiceOfferUpdate, ServiceOfferResponse, ServiceOfferDetailResponse
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_admin
 from app.models.user import User
 
 router = APIRouter()
@@ -81,10 +81,9 @@ def get_offer(offer_id: int, db: Session = Depends(get_db)):
 def create_offer(
     offer: ServiceOfferCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """إضافة عرض جديد (للأدمن فقط)"""
-    # TODO: التحقق من أن المستخدم أدمن
     
     # التحقق من وجود الخدمة
     service = db.query(Service).filter(Service.id == offer.service_id).first()
@@ -106,7 +105,7 @@ def update_offer(
     offer_id: int,
     offer: ServiceOfferUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """تحديث عرض (للأدمن فقط)"""
     db_offer = db.query(ServiceOffer).filter(ServiceOffer.id == offer_id).first()
@@ -128,7 +127,7 @@ def update_offer(
 def delete_offer(
     offer_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """حذف عرض (للأدمن فقط)"""
     db_offer = db.query(ServiceOffer).filter(ServiceOffer.id == offer_id).first()
