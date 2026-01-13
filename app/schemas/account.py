@@ -190,3 +190,81 @@ class DeleteAccountResponse(BaseModel):
     message: str
     success: bool
 
+# Account Menu Schemas
+class AccountMenuItem(BaseModel):
+    id: str
+    title: str
+    icon: Optional[str] = None
+    route: Optional[str] = None
+
+class AccountMenuResponse(BaseModel):
+    menu_items: List[AccountMenuItem]
+
+# Profile Info Schemas - Different for each role
+class TechnicianProfileInfoResponse(BaseModel):
+    """معلومات الحساب للفني"""
+    id: int
+    profile_image: Optional[str]
+    full_name: Optional[str]
+    address: Optional[str]
+    skills: Optional[List[str]]
+    years_of_experience: Optional[int]
+    phone: str
+    country_code: Optional[str]
+
+class PoolOwnerProfileInfoResponse(BaseModel):
+    """معلومات الحساب لصاحب الحمام"""
+    id: int
+    profile_image: Optional[str]
+    full_name: Optional[str]
+    address: Optional[str]
+    phone: str
+    country_code: Optional[str]
+
+class CompanyProfileInfoResponse(BaseModel):
+    """معلومات الحساب لممثل الشركة"""
+    id: int
+    profile_image: Optional[str]
+    full_name: Optional[str]
+    phone: str
+    country_code: Optional[str]
+
+# Project Schemas (مشاريعي)
+class ProjectResponse(BaseModel):
+    """مشروع ممثل الشركة"""
+    booking_id: int
+    project_name: str
+    location: Optional[str]
+    pools_count: int
+    completion_percentage: float
+    status: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    next_visit: Optional[dict] = None  # {date, time, reminder}
+
+class ProjectsListResponse(BaseModel):
+    """قائمة المشاريع مصنفة حسب الحالة"""
+    in_progress: List[ProjectResponse]
+    scheduled: List[ProjectResponse]
+    completed: List[ProjectResponse]
+
+# Package Schemas (باقاتي)
+class PackageResponse(BaseModel):
+    """باقة صيانة"""
+    booking_id: int
+    package_id: int
+    package_name: str
+    package_type: str  # monthly, quarterly, yearly
+    start_date: str
+    end_date: Optional[str] = None
+    visits_count: int
+    completed_visits: int
+    status: str
+    next_visit: Optional[dict] = None  # {date, time, reminder}
+    progress_percentage: Optional[float] = None
+
+class PackagesListResponse(BaseModel):
+    """قائمة الباقات مصنفة حسب الحالة"""
+    in_progress: List[PackageResponse]
+    scheduled: List[PackageResponse]
+    completed: List[PackageResponse]

@@ -14,7 +14,8 @@ from app.schemas.account import (
     ProfileResponse, FAQResponse, FAQCreate, FAQUpdate,
     PrivacySectionResponse, PrivacySectionCreate, PrivacySectionUpdate,
     WhyUsStatResponse, WhyUsStatCreate, WhyUsStatUpdate,
-    WhyUsFeatureResponse, WhyUsFeatureCreate, WhyUsFeatureUpdate
+    WhyUsFeatureResponse, WhyUsFeatureCreate, WhyUsFeatureUpdate,
+    TechnicianProfileUpdateRequest, PoolOwnerProfileUpdateRequest, CompanyProfileUpdateRequest
 )
 
 router = APIRouter()
@@ -661,3 +662,285 @@ async def delete_why_us_feature(
     db.commit()
     return
 
+# ============= Admin - User Profiles Management (التحكم في صفحات الحساب الشخصي) =============
+
+@router.get("/admin/users/{user_id}/profile", response_model=ProfileResponse)
+async def get_user_profile_by_admin(
+    user_id: int,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    الحصول على معلومات حساب مستخدم محدد (للأدمن فقط)
+    Get user profile by admin (Admin only)
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="المستخدم غير موجود"
+        )
+    
+    # تحويل skills من comma-separated string إلى list
+    skills_list = None
+    if user.skills:
+        skills_list = [skill.strip() for skill in user.skills.split(",") if skill.strip()]
+    
+    return ProfileResponse(
+        id=user.id,
+        phone=user.phone,
+        country_code=getattr(user, 'country_code', '+20'),
+        full_name=user.full_name,
+        profile_image=user.profile_image,
+        address=user.address,
+        latitude=user.latitude,
+        longitude=user.longitude,
+        skills=skills_list,
+        years_of_experience=user.years_of_experience,
+        is_phone_verified=user.is_phone_verified,
+        created_at=user.created_at
+    )
+
+@router.put("/admin/users/{user_id}/profile/technician")
+async def update_technician_profile_by_admin(
+    user_id: int,
+    profile_update: TechnicianProfileUpdateRequest,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    تحديث معلومات حساب فني (للأدمن فقط)
+    Update technician profile by admin (Admin only)
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="المستخدم غير موجود"
+        )
+    
+    if user.role != UserRole.TECHNICIAN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="هذا المستخدم ليس فني"
+        )
+    
+    update_data = profile_update.dict(exclude_unset=True)
+    
+    # معالجة skills (تحويل list إلى string)
+    if "skills" in update_data and update_data["skills"] is not None:
+        if isinstance(update_data["skills"], list):
+            update_data["skills"] = ", ".join(update_data["skills"])
+    
+    # تحديث الحقول
+    for field, value in update_data.items():
+        if value is not None:
+            setattr(user, field, value)
+    
+    db.commit()
+    db.refresh(user)
+    
+    # تحويل skills من string إلى list للـ response
+    skills_list = None
+    if user.skills:
+        skills_list = [skill.strip() for skill in user.skills.split(",") if skill.strip()]
+    
+    return ProfileResponse(
+        id=user.id,
+        phone=user.phone,
+        country_code=getattr(user, 'country_code', '+20'),
+        full_name=user.full_name,
+        profile_image=user.profile_image,
+        address=user.address,
+        latitude=user.latitude,
+        longitude=user.longitude,
+        skills=skills_list,
+        years_of_experience=user.years_of_experience,
+        is_phone_verified=user.is_phone_verified,
+        created_at=user.created_at
+    )
+
+@router.put("/admin/users/{user_id}/profile/pool-owner")
+async def update_pool_owner_profile_by_admin(
+    user_id: int,
+    profile_update: PoolOwnerProfileUpdateRequest,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    تحديث معلومات حساب صاحب حمام (للأدمن فقط)
+    Update pool owner profile by admin (Admin only)
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="المستخدم غير موجود"
+        )
+    
+    if user.role != UserRole.POOL_OWNER:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="هذا المستخدم ليس صاحب حمام"
+        )
+    
+    update_data = profile_update.dict(exclude_unset=True)
+    
+    # تحديث الحقول
+    for field, value in update_data.items():
+        if value is not None:
+            setattr(user, field, value)
+    
+    db.commit()
+    db.refresh(user)
+    
+    return ProfileResponse(
+        id=user.id,
+        phone=user.phone,
+        country_code=getattr(user, 'country_code', '+20'),
+        full_name=user.full_name,
+        profile_image=user.profile_image,
+        address=user.address,
+        latitude=user.latitude,
+        longitude=user.longitude,
+        skills=None,
+        years_of_experience=None,
+        is_phone_verified=user.is_phone_verified,
+        created_at=user.created_at
+    )
+
+@router.put("/admin/users/{user_id}/profile/company")
+async def update_company_profile_by_admin(
+    user_id: int,
+    profile_update: CompanyProfileUpdateRequest,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    تحديث معلومات حساب ممثل شركة (للأدمن فقط)
+    Update company profile by admin (Admin only)
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="المستخدم غير موجود"
+        )
+    
+    if user.role != UserRole.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="هذا المستخدم ليس ممثل شركة"
+        )
+    
+    update_data = profile_update.dict(exclude_unset=True)
+    
+    # تحديث الحقول
+    for field, value in update_data.items():
+        if value is not None:
+            setattr(user, field, value)
+    
+    db.commit()
+    db.refresh(user)
+    
+    return ProfileResponse(
+        id=user.id,
+        phone=user.phone,
+        country_code=getattr(user, 'country_code', '+20'),
+        full_name=user.full_name,
+        profile_image=user.profile_image,
+        address=user.address,
+        latitude=user.latitude,
+        longitude=user.longitude,
+        skills=None,
+        years_of_experience=None,
+        is_phone_verified=user.is_phone_verified,
+        created_at=user.created_at
+    )
+
+# ============= Admin - Packages Management (التحكم في الباقات) =============
+
+@router.get("/admin/packages")
+async def get_all_packages_admin(
+    skip: int = 0,
+    limit: int = 100,
+    is_active: Optional[bool] = None,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    الحصول على قائمة جميع الباقات (للأدمن فقط)
+    Get all maintenance packages (Admin only)
+    """
+    from app.models.maintenance_package import MaintenancePackage
+    from app.schemas.maintenance_package import MaintenancePackageResponse
+    
+    query = db.query(MaintenancePackage)
+    
+    if is_active is not None:
+        query = query.filter(MaintenancePackage.is_active == is_active)
+    
+    packages = query.order_by(MaintenancePackage.created_at.desc()).offset(skip).limit(limit).all()
+    return packages
+
+# ============= Admin - Offers Management (التحكم في العروض) =============
+
+@router.get("/admin/offers")
+async def get_all_offers_admin(
+    skip: int = 0,
+    limit: int = 100,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    الحصول على قائمة جميع العروض (للأدمن فقط)
+    Get all service offers (Admin only)
+    """
+    from app.models.service_offer import ServiceOffer, OfferStatus
+    from app.schemas.service_offer import ServiceOfferResponse
+    
+    query = db.query(ServiceOffer)
+    
+    if status:
+        try:
+            offer_status = OfferStatus(status)
+            query = query.filter(ServiceOffer.status == offer_status)
+        except ValueError:
+            pass
+    
+    offers = query.order_by(ServiceOffer.created_at.desc()).offset(skip).limit(limit).all()
+    return offers
+
+# ============= Admin - Products Management (التحكم في المنتجات/الكروت) =============
+
+@router.get("/admin/products")
+async def get_all_products_admin(
+    skip: int = 0,
+    limit: int = 100,
+    status: Optional[str] = None,
+    category_id: Optional[int] = None,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    الحصول على قائمة جميع المنتجات/الكروت (للأدمن فقط)
+    Get all products (Admin only)
+    """
+    from app.models.product import Product, ProductStatus
+    from app.schemas.product import ProductResponse
+    
+    query = db.query(Product)
+    
+    if status:
+        try:
+            product_status = ProductStatus(status)
+            query = query.filter(Product.status == product_status)
+        except ValueError:
+            pass
+    
+    if category_id:
+        query = query.filter(Product.category_id == category_id)
+    
+    products = query.order_by(Product.created_at.desc()).offset(skip).limit(limit).all()
+    return products
