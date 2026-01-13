@@ -1089,12 +1089,13 @@ def seed_contact_messages(session: Session) -> int:
 
 def seed_faqs(session: Session) -> int:
     faqs_data = [
+        # ============= FAQs للفني (Technician) =============
         {
             "question_ar": "ازاي أشوف المهام المطلوبة مني خلال الأسبوع؟",
             "question_en": "How do I see my required tasks for the week?",
             "answer_ar": "يمكنك عرض المهام المطلوبة منك من خلال قسم 'المهام' في التطبيق. ستجد قائمة بجميع المهام المجدولة مع تفاصيل كل مهمة مثل التاريخ والوقت والموقع.",
             "answer_en": "You can view your required tasks through the 'Tasks' section in the app. You'll find a list of all scheduled tasks with details like date, time, and location.",
-            "category": "general",
+            "category": "technician",
             "sort_order": 1,
         },
         {
@@ -1102,23 +1103,65 @@ def seed_faqs(session: Session) -> int:
             "question_en": "How do I contact support?",
             "answer_ar": "يمكنك التواصل مع فريق الدعم من خلال قسم 'مركز المساعدة' في حسابك. يمكنك إرسال رسالة مباشرة أو الاتصال بنا على الرقم المخصص للدعم.",
             "answer_en": "You can contact the support team through the 'Help Center' section in your account. You can send a direct message or call us on the dedicated support number.",
-            "category": "general",
+            "category": "technician",
             "sort_order": 2,
         },
         {
             "question_ar": "ازاي أدخل على ملف كل عميل؟",
             "question_en": "How do I access each customer's profile?",
-            "answer_ar": "يمكنك الوصول إلى ملف العميل من خلال قائمة المهام. اضغط على المهمة المخصصة للعميل وستجد رابط لملفه الشخصي مع جميع التفاصيل المهمة.",
-            "answer_en": "You can access the customer's profile through the tasks list. Click on the task assigned to the customer and you'll find a link to their profile with all important details.",
-            "category": "technical",
+            "answer_ar": "يمكنك الوصول إلى ملفات العملاء من خلال قسم 'المهام' في التطبيق. اضغط على أي مهمة لرؤية تفاصيل العميل والمسبح المرتبط بها.",
+            "answer_en": "You can access customer files through the 'Tasks' section in the app. Click on any task to see customer and pool details associated with it.",
+            "category": "technician",
+            "sort_order": 3,
+        },
+        {
+            "question_ar": "كيف أغير رقم الهاتف؟",
+            "question_en": "How do I change my phone number?",
+            "answer_ar": "يمكنك تغيير رقم الهاتف من خلال قسم 'معلومات الحساب' في حسابك. اضغط على زر التعديل بجانب رقم الهاتف وأدخل الرقم الجديد. سيتم إرسال رمز تحقق للرقم الجديد.",
+            "answer_en": "You can change your phone number through the 'Account Information' section in your account. Click the edit button next to the phone number and enter the new number. A verification code will be sent to the new number.",
+            "category": "technician",
+            "sort_order": 4,
+        },
+        {
+            "question_ar": "فين بلاقي تاريخ مشترياتي؟",
+            "question_en": "Where do I find my purchase history?",
+            "answer_ar": "يمكنك عرض تاريخ مشترياتك من خلال قسم 'المتجر' في التطبيق. اضغط على 'طلباتي' لرؤية جميع الطلبات السابقة والحالية.",
+            "answer_en": "You can view your purchase history through the 'Store' section in the app. Click on 'My Orders' to see all past and current orders.",
+            "category": "technician",
+            "sort_order": 5,
+        },
+        
+        # ============= FAQs لصاحب الحمام (Pool Owner) =============
+        {
+            "question_ar": "كيف أطلب خدمة صيانة جديدة؟",
+            "question_en": "How do I request a new maintenance service?",
+            "answer_ar": "يمكنك طلب خدمة صيانة جديدة من خلال قسم 'الخدمات' في التطبيق. اختر نوع الخدمة المطلوبة وحدد التاريخ والوقت المناسبين لك، ثم اضغط 'تأكيد الحجز'.",
+            "answer_en": "You can request a new maintenance service through the 'Services' section in the app. Choose the type of service you need and select the date and time that suit you, then click 'Confirm Booking'.",
+            "category": "pool_owner",
+            "sort_order": 1,
+        },
+        {
+            "question_ar": "لو المنتج طلع فيه مشكلة؟",
+            "question_en": "What if the product has a problem?",
+            "answer_ar": "إذا واجهت أي مشكلة مع منتج تم شراؤه، يمكنك التواصل مع فريق الدعم من خلال قسم 'مركز المساعدة'. سنقوم بمعالجة المشكلة في أقرب وقت ممكن.",
+            "answer_en": "If you encounter any problem with a purchased product, you can contact the support team through the 'Help Center' section. We will resolve the issue as soon as possible.",
+            "category": "pool_owner",
+            "sort_order": 2,
+        },
+        {
+            "question_ar": "هل أقدر أتابع الشغل المستمر؟",
+            "question_en": "Can I track ongoing work?",
+            "answer_ar": "نعم، يمكنك متابعة جميع أعمال الصيانة المستمرة من خلال قسم 'باقاتي' في حسابك. ستجد تفاصيل كل باقة مع حالة التقدم والزيارات القادمة.",
+            "answer_en": "Yes, you can track all ongoing maintenance work through the 'My Packages' section in your account. You'll find details of each package with progress status and upcoming visits.",
+            "category": "pool_owner",
             "sort_order": 3,
         },
         {
             "question_ar": "فين بلاقي تاريخ مشترياتي؟",
             "question_en": "Where do I find my purchase history?",
-            "answer_ar": "يمكنك العثور على تاريخ مشترياتك في قسم 'المتجر' ثم 'مشترياتي'. ستجد قائمة بجميع الطلبات السابقة مع تفاصيل كل طلب.",
-            "answer_en": "You can find your purchase history in the 'Store' section then 'My Purchases'. You'll find a list of all previous orders with details of each order.",
-            "category": "account",
+            "answer_ar": "يمكنك عرض تاريخ مشترياتك من خلال قسم 'المتجر' في التطبيق. اضغط على 'طلباتي' لرؤية جميع الطلبات السابقة والحالية.",
+            "answer_en": "You can view your purchase history through the 'Store' section in the app. Click on 'My Orders' to see all past and current orders.",
+            "category": "pool_owner",
             "sort_order": 4,
         },
         {
@@ -1126,8 +1169,60 @@ def seed_faqs(session: Session) -> int:
             "question_en": "How do I change my phone number?",
             "answer_ar": "يمكنك تغيير رقم الهاتف من خلال قسم 'معلومات الحساب' في حسابك. اضغط على زر التعديل بجانب رقم الهاتف وأدخل الرقم الجديد. سيتم إرسال رمز تحقق للرقم الجديد.",
             "answer_en": "You can change your phone number through the 'Account Information' section in your account. Click the edit button next to the phone number and enter the new number. A verification code will be sent to the new number.",
-            "category": "account",
+            "category": "pool_owner",
             "sort_order": 5,
+        },
+        
+        # ============= FAQs لممثل الشركة (Company) =============
+        {
+            "question_ar": "كيف أضيف مشروع جديد؟",
+            "question_en": "How do I add a new project?",
+            "answer_ar": "يمكنك إضافة مشروع جديد من خلال قسم 'الخدمات' في التطبيق. اختر 'إنشاء مسبح' وحدد نوع المسبح والتاريخ والوقت المناسبين، ثم اضغط 'تأكيد الحجز'.",
+            "answer_en": "You can add a new project through the 'Services' section in the app. Choose 'Pool Construction' and select the pool type, date and time that suit you, then click 'Confirm Booking'.",
+            "category": "company",
+            "sort_order": 1,
+        },
+        {
+            "question_ar": "ازاي أتابع حالة المشاريع؟",
+            "question_en": "How do I track project status?",
+            "answer_ar": "يمكنك متابعة حالة جميع مشاريعك من خلال قسم 'مشاريعي' في حسابك. ستجد تفاصيل كل مشروع مع نسبة الإنجاز والزيارات القادمة.",
+            "answer_en": "You can track the status of all your projects through the 'My Projects' section in your account. You'll find details of each project with completion percentage and upcoming visits.",
+            "category": "company",
+            "sort_order": 2,
+        },
+        {
+            "question_ar": "ازاي أتواصل مع الدعم؟",
+            "question_en": "How do I contact support?",
+            "answer_ar": "يمكنك التواصل مع فريق الدعم من خلال قسم 'مركز المساعدة' في حسابك. يمكنك إرسال رسالة مباشرة أو الاتصال بنا على الرقم المخصص للدعم.",
+            "answer_en": "You can contact the support team through the 'Help Center' section in your account. You can send a direct message or call us on the dedicated support number.",
+            "category": "company",
+            "sort_order": 3,
+        },
+        {
+            "question_ar": "كيف أغير رقم الهاتف؟",
+            "question_en": "How do I change my phone number?",
+            "answer_ar": "يمكنك تغيير رقم الهاتف من خلال قسم 'معلومات الحساب' في حسابك. اضغط على زر التعديل بجانب رقم الهاتف وأدخل الرقم الجديد. سيتم إرسال رمز تحقق للرقم الجديد.",
+            "answer_en": "You can change your phone number through the 'Account Information' section in your account. Click the edit button next to the phone number and enter the new number. A verification code will be sent to the new number.",
+            "category": "company",
+            "sort_order": 4,
+        },
+        
+        # ============= FAQs عامة (General) =============
+        {
+            "question_ar": "ازاي أتواصل مع الدعم؟",
+            "question_en": "How do I contact support?",
+            "answer_ar": "يمكنك التواصل مع فريق الدعم من خلال قسم 'مركز المساعدة' في حسابك. يمكنك إرسال رسالة مباشرة أو الاتصال بنا على الرقم المخصص للدعم.",
+            "answer_en": "You can contact the support team through the 'Help Center' section in your account. You can send a direct message or call us on the dedicated support number.",
+            "category": "general",
+            "sort_order": 1,
+        },
+        {
+            "question_ar": "كيف أغير رقم الهاتف؟",
+            "question_en": "How do I change my phone number?",
+            "answer_ar": "يمكنك تغيير رقم الهاتف من خلال قسم 'معلومات الحساب' في حسابك. اضغط على زر التعديل بجانب رقم الهاتف وأدخل الرقم الجديد. سيتم إرسال رمز تحقق للرقم الجديد.",
+            "answer_en": "You can change your phone number through the 'Account Information' section in your account. Click the edit button next to the phone number and enter the new number. A verification code will be sent to the new number.",
+            "category": "general",
+            "sort_order": 2,
         },
     ]
 

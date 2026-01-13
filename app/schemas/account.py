@@ -268,3 +268,23 @@ class PackagesListResponse(BaseModel):
     in_progress: List[PackageResponse]
     scheduled: List[PackageResponse]
     completed: List[PackageResponse]
+
+# Package Renewal Schemas (تجديد الباقة)
+class PackageRenewalInfoResponse(BaseModel):
+    """معلومات تجديد الباقة"""
+    package_id: int
+    package_name: str
+    package_type: str
+    default_date: str  # التاريخ الافتراضي (غالباً اليوم أو بعد انتهاء الباقة)
+    default_time: str  # الوقت الافتراضي
+
+class PackageRenewalRequest(BaseModel):
+    """طلب تجديد الباقة"""
+    booking_date: str = Field(..., description="تاريخ الحجز (YYYY-MM-DD)")
+    booking_time: str = Field(..., description="وقت الحجز (HH:MM)")
+
+class PackageRenewalResponse(BaseModel):
+    """استجابة تجديد الباقة"""
+    message: str
+    booking_id: int
+    success: bool

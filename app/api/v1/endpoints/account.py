@@ -20,7 +20,8 @@ from app.schemas.account import (
     WhyUsFeatureResponse, DeleteAccountConfirm, DeleteAccountResponse,
     AccountMenuResponse, AccountMenuItem,
     TechnicianProfileInfoResponse, PoolOwnerProfileInfoResponse, CompanyProfileInfoResponse,
-    ProjectResponse, ProjectsListResponse, PackageResponse, PackagesListResponse
+    ProjectResponse, ProjectsListResponse, PackageResponse, PackagesListResponse,
+    PackageRenewalInfoResponse, PackageRenewalRequest, PackageRenewalResponse
 )
 from app.models.enums import UserRole
 from app.services.upload_service import UploadService
@@ -754,45 +755,230 @@ async def get_my_services_packages(
         completed=completed
     )
 
+# ============= Package Renewal (تجديد الباقة) =============
+
+@router.get("/account/packages/{booking_id}/renewal-info", response_model=PackageRenewalInfoResponse)
+async def get_package_renewal_info(
+    booking_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    الحصول على معلومات تجديد الباقة (للـ popup)
+    Get package renewal information for popup
+    """
+    if current_user.role != UserRole.POOL_OWNER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="هذا الـ endpoint مخصص لأصحاب المسابح فقط"
+        )
+    
+    # جلب الحجز
+    booking = db.query(Booking).filter(
+        Booking.id == booking_id,
+        Booking.user_id == current_user.id,
+        Booking.booking_type == BookingType.MAINTENANCE_PACKAGE
+    ).first()
+    
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="الحجز غير موجود"
+        )
+    
+    if booking.status != BookingStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="يمكن تجديد الباقات المكتملة فقط"
+        )
+    
+    if not booking.package:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="الباقة غير موجودة"
+        )
+    
+    # نوع الباقة
+    package_type_map = {
+        "monthly": "الباقة الشهرية",
+        "quarterly": "باقة (4 شهور)",
+        "yearly": "الباقة السنوية"
+    }
+    package_type_ar = package_type_map.get(booking.package.duration.value, booking.package.duration.value)
+    
+    # التاريخ الافتراضي (اليوم أو بعد انتهاء الباقة)
+    from datetime import timedelta
+    duration_days = {
+        "monthly": 30,
+        "quarterly": 120,
+        "yearly": 365
+    }
+    days = duration_days.get(booking.package.duration.value, 30)
+    end_date = booking.booking_date + timedelta(days=days)
+    
+    # التاريخ الافتراضي للتجديد (بعد انتهاء الباقة أو اليوم إذا انتهت)
+    default_date = max(end_date, date.today())
+    
+    # الوقت الافتراضي (من الحجز السابق أو 09:00)
+    default_time = str(booking.booking_time) if booking.booking_time else "09:00"
+    
+    return PackageRenewalInfoResponse(
+        package_id=booking.package.id,
+        package_name=booking.package.name_ar,
+        package_type=package_type_ar,
+        default_date=str(default_date),
+        default_time=default_time
+    )
+
+@router.post("/account/packages/{booking_id}/renew", response_model=PackageRenewalResponse)
+async def renew_package(
+    booking_id: int,
+    renewal_request: PackageRenewalRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    تأكيد تجديد الباقة (إنشاء حجز جديد)
+    Confirm package renewal (create new booking)
+    """
+    if current_user.role != UserRole.POOL_OWNER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="هذا الـ endpoint مخصص لأصحاب المسابح فقط"
+        )
+    
+    # جلب الحجز القديم
+    old_booking = db.query(Booking).filter(
+        Booking.id == booking_id,
+        Booking.user_id == current_user.id,
+        Booking.booking_type == BookingType.MAINTENANCE_PACKAGE
+    ).first()
+    
+    if not old_booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="الحجز غير موجود"
+        )
+    
+    if old_booking.status != BookingStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="يمكن تجديد الباقات المكتملة فقط"
+        )
+    
+    if not old_booking.package:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="الباقة غير موجودة"
+        )
+    
+    # التحقق من أن الباقة لا تزال نشطة
+    if not old_booking.package.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="الباقة غير متاحة للتجديد"
+        )
+    
+    # تحويل التاريخ والوقت
+    try:
+        booking_date = datetime.strptime(renewal_request.booking_date, "%Y-%m-%d").date()
+        booking_time = datetime.strptime(renewal_request.booking_time, "%H:%M").time()
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="صيغة التاريخ أو الوقت غير صحيحة. استخدم YYYY-MM-DD للتاريخ و HH:MM للوقت"
+        )
+    
+    # التحقق من أن التاريخ في المستقبل
+    if booking_date < date.today():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="التاريخ يجب أن يكون في المستقبل"
+        )
+    
+    # حساب موعد الصيانة القادم
+    from datetime import timedelta
+    duration_days = {
+        "monthly": 30,
+        "quarterly": 120,
+        "yearly": 365
+    }
+    days = duration_days.get(old_booking.package.duration.value, 30)
+    next_maintenance_date = booking_date + timedelta(days=days)
+    
+    # إنشاء حجز جديد
+    new_booking = Booking(
+        user_id=current_user.id,
+        booking_type=BookingType.MAINTENANCE_PACKAGE,
+        package_id=old_booking.package_id,
+        booking_date=booking_date,
+        booking_time=booking_time,
+        status=BookingStatus.PENDING,
+        next_maintenance_date=next_maintenance_date
+    )
+    
+    db.add(new_booking)
+    db.commit()
+    db.refresh(new_booking)
+    
+    return PackageRenewalResponse(
+        message="تم تجديد الباقة بنجاح",
+        booking_id=new_booking.id,
+        success=True
+    )
+
 # ============= Help Center (FAQ) =============
 
 @router.get("/account/help-center", response_model=List[FAQResponse])
 async def get_faqs(
     category: Optional[str] = None,
-    role: Optional[str] = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
-    الحصول على الأسئلة الشائعة (مع فلترة حسب الدور)
-    Get frequently asked questions (filtered by role)
+    الحصول على الأسئلة الشائعة (مفلترة تلقائياً حسب دور المستخدم)
+    Get frequently asked questions (automatically filtered by user role)
+    
+    الأسئلة مختلفة لكل دور:
+    - الفني: أسئلة خاصة بالفنيين
+    - صاحب الحمام: أسئلة خاصة بأصحاب المسابح
+    - ممثل الشركة: أسئلة خاصة بالشركات
+    - عامة: أسئلة مشتركة لجميع الأدوار
     """
     query = db.query(FAQ).filter(FAQ.is_active == True)
     
-    # فلترة حسب الفئة
+    # فلترة حسب الفئة (إذا تم تحديدها يدوياً)
     if category:
         query = query.filter(FAQ.category == category)
-    
-    # فلترة حسب الدور (إذا كان في category خاص بالدور)
-    # يمكن إضافة منطق هنا لفلترة حسب الدور
-    # مثال: category يمكن أن يكون "technician", "pool_owner", "company"
-    if role:
-        query = query.filter(FAQ.category == role)
-    elif current_user.role:
-        # محاولة فلترة تلقائية حسب دور المستخدم
+    else:
+        # فلترة تلقائية حسب دور المستخدم
         role_category_map = {
             UserRole.TECHNICIAN: "technician",
             UserRole.POOL_OWNER: "pool_owner",
-            UserRole.COMPANY: "company"
+            UserRole.COMPANY: "company",
+            UserRole.ADMIN: "admin"
         }
         role_category = role_category_map.get(current_user.role)
+        
         if role_category:
             # جلب FAQs الخاصة بالدور + العامة
+            # FAQs الخاصة بالدور لها الأولوية
             query = query.filter(
                 (FAQ.category == role_category) | (FAQ.category == "general") | (FAQ.category.is_(None))
             )
+        else:
+            # إذا لم يكن الدور معروف، نرجع فقط العامة
+            query = query.filter(
+                (FAQ.category == "general") | (FAQ.category.is_(None))
+            )
     
-    faqs = query.order_by(FAQ.sort_order, FAQ.id).all()
+    # الترتيب: FAQs الخاصة بالدور أولاً، ثم العامة
+    faqs = query.order_by(
+        FAQ.category.desc().nullslast(),  # FAQs الخاصة بالدور أولاً
+        FAQ.sort_order,
+        FAQ.id
+    ).all()
+    
     return faqs
 
 # ============= Privacy and Security =============
