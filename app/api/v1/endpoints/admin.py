@@ -883,6 +883,77 @@ async def get_all_packages_admin(
     packages = query.order_by(MaintenancePackage.created_at.desc()).offset(skip).limit(limit).all()
     return packages
 
+@router.post("/admin/packages", status_code=status.HTTP_201_CREATED)
+async def create_package_admin(
+    package,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    إضافة باقة جديدة (للأدمن فقط)
+    Create new maintenance package (Admin only)
+    """
+    from app.models.maintenance_package import MaintenancePackage
+    from app.schemas.maintenance_package import MaintenancePackageCreate, MaintenancePackageResponse
+    
+    new_package = MaintenancePackage(**package.dict())
+    db.add(new_package)
+    db.commit()
+    db.refresh(new_package)
+    return new_package
+
+@router.put("/admin/packages/{package_id}")
+async def update_package_admin(
+    package_id: int,
+    package,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    تحديث باقة (للأدمن فقط)
+    Update maintenance package (Admin only)
+    """
+    from app.models.maintenance_package import MaintenancePackage
+    from app.schemas.maintenance_package import MaintenancePackageUpdate
+    
+    db_package = db.query(MaintenancePackage).filter(MaintenancePackage.id == package_id).first()
+    if not db_package:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="الباقة غير موجودة"
+        )
+    
+    update_data = package.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_package, field, value)
+    
+    db.commit()
+    db.refresh(db_package)
+    return db_package
+
+@router.delete("/admin/packages/{package_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_package_admin(
+    package_id: int,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    حذف باقة (للأدمن فقط)
+    Delete maintenance package (Admin only)
+    """
+    from app.models.maintenance_package import MaintenancePackage
+    
+    db_package = db.query(MaintenancePackage).filter(MaintenancePackage.id == package_id).first()
+    if not db_package:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="الباقة غير موجودة"
+        )
+    
+    db.delete(db_package)
+    db.commit()
+    return
+
 # ============= Admin - Offers Management (التحكم في العروض) =============
 
 @router.get("/admin/offers")
@@ -911,6 +982,84 @@ async def get_all_offers_admin(
     
     offers = query.order_by(ServiceOffer.created_at.desc()).offset(skip).limit(limit).all()
     return offers
+
+@router.post("/admin/offers", status_code=status.HTTP_201_CREATED)
+async def create_offer_admin(
+    offer,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    إضافة عرض جديد (للأدمن فقط)
+    Create new service offer (Admin only)
+    """
+    from app.models.service_offer import ServiceOffer
+    from app.models.service import Service
+    from app.schemas.service_offer import ServiceOfferCreate
+    
+    # التحقق من وجود الخدمة
+    service = db.query(Service).filter(Service.id == offer.service_id).first()
+    if not service:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="الخدمة غير موجودة")
+    
+    new_offer = ServiceOffer(**offer.dict())
+    
+    # حساب السعر النهائي
+    new_offer.final_price = new_offer.calculate_final_price()
+    
+    db.add(new_offer)
+    db.commit()
+    db.refresh(new_offer)
+    return new_offer
+
+@router.put("/admin/offers/{offer_id}")
+async def update_offer_admin(
+    offer_id: int,
+    offer,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    تحديث عرض (للأدمن فقط)
+    Update service offer (Admin only)
+    """
+    from app.models.service_offer import ServiceOffer
+    from app.schemas.service_offer import ServiceOfferUpdate
+    
+    db_offer = db.query(ServiceOffer).filter(ServiceOffer.id == offer_id).first()
+    if not db_offer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="العرض غير موجود")
+    
+    update_data = offer.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_offer, field, value)
+    
+    # إعادة حساب السعر النهائي
+    db_offer.final_price = db_offer.calculate_final_price()
+    
+    db.commit()
+    db.refresh(db_offer)
+    return db_offer
+
+@router.delete("/admin/offers/{offer_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_offer_admin(
+    offer_id: int,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    حذف عرض (للأدمن فقط)
+    Delete service offer (Admin only)
+    """
+    from app.models.service_offer import ServiceOffer
+    
+    db_offer = db.query(ServiceOffer).filter(ServiceOffer.id == offer_id).first()
+    if not db_offer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="العرض غير موجود")
+    
+    db.delete(db_offer)
+    db.commit()
+    return
 
 # ============= Admin - Products Management (التحكم في المنتجات/الكروت) =============
 
@@ -944,3 +1093,75 @@ async def get_all_products_admin(
     
     products = query.order_by(Product.created_at.desc()).offset(skip).limit(limit).all()
     return products
+
+@router.post("/admin/products", status_code=status.HTTP_201_CREATED)
+async def create_product_admin(
+    product,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    إضافة منتج جديد (للأدمن فقط)
+    Create new product (Admin only)
+    """
+    from app.models.product import Product
+    from app.schemas.product import ProductCreate
+    
+    new_product = Product(**product.dict())
+    
+    # حساب السعر النهائي
+    new_product.final_price = new_product.calculate_final_price()
+    
+    db.add(new_product)
+    db.commit()
+    db.refresh(new_product)
+    return new_product
+
+@router.put("/admin/products/{product_id}")
+async def update_product_admin(
+    product_id: int,
+    product,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    تحديث منتج (للأدمن فقط)
+    Update product (Admin only)
+    """
+    from app.models.product import Product
+    from app.schemas.product import ProductUpdate
+    
+    db_product = db.query(Product).filter(Product.id == product_id).first()
+    if not db_product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="المنتج غير موجود")
+    
+    update_data = product.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_product, field, value)
+    
+    # إعادة حساب السعر النهائي
+    db_product.final_price = db_product.calculate_final_price()
+    
+    db.commit()
+    db.refresh(db_product)
+    return db_product
+
+@router.delete("/admin/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product_admin(
+    product_id: int,
+    current_user: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    حذف منتج (للأدمن فقط)
+    Delete product (Admin only)
+    """
+    from app.models.product import Product
+    
+    db_product = db.query(Product).filter(Product.id == product_id).first()
+    if not db_product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="المنتج غير موجود")
+    
+    db.delete(db_product)
+    db.commit()
+    return
