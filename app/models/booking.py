@@ -29,6 +29,7 @@ class Booking(Base):
     # Admin fields
     admin_notes = Column(String, nullable=True)
     next_maintenance_date = Column(Date, nullable=True)
+    project_image = Column(String(500), nullable=True)  # صورة المشروع (للمشاريع فقط)
 
     # System fields
     reminder_sent = Column(Boolean, default=False, nullable=False)

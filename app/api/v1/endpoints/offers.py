@@ -12,9 +12,13 @@ from app.models.user import User
 
 router = APIRouter()
 
-# ============= Service Offers APIs =============
+# ============= Service Offers APIs (عروض الخدمات - الإنشاء والصيانة) =============
+# هذه العروض خاصة بخدمات الإنشاء والصيانة فقط
+# متاحة لصاحب الحمام وممثل الشركة
+# تظهر في الصفحة الرئيسية (Home Page) لصاحب الحمام وممثل الشركة
+# للعروض على المنتجات (معدات الصيانة)، استخدم /products
 
-@router.get("/offers", response_model=List[ServiceOfferDetailResponse], summary="قائمة العروض")
+@router.get("/", response_model=List[ServiceOfferDetailResponse], summary="قائمة عروض الخدمات (الإنشاء والصيانة)")
 def get_all_offers(
     service_id: Optional[int] = Query(None, description="فلترة حسب الخدمة"),
     status: Optional[OfferStatus] = Query(None, description="فلترة حسب الحالة"),
@@ -23,7 +27,12 @@ def get_all_offers(
     limit: int = 20,
     db: Session = Depends(get_db)
 ):
-    """الحصول على قائمة بجميع العروض مع الفلترة"""
+    """
+    الحصول على قائمة بجميع عروض الخدمات (الإنشاء والصيانة) مع الفلترة
+    
+    ملاحظة: هذه العروض خاصة بخدمات الإنشاء والصيانة فقط.
+    للعروض على المنتجات (معدات الصيانة)، استخدم /products
+    """
     today = datetime.now().date()
     
     query = db.query(ServiceOffer)
@@ -63,7 +72,29 @@ def get_all_offers(
     
     return results
 
-@router.get("/offers/{offer_id}", response_model=ServiceOfferDetailResponse, summary="تفاصيل عرض")
+@router.get("/featured", response_model=List[ServiceOfferDetailResponse], summary="عروض الخدمات المميزة (للصفحة الرئيسية)")
+def get_featured_service_offers(
+    limit: int = Query(6, description="عدد العروض"),
+    db: Session = Depends(get_db)
+):
+    """
+    الحصول على عروض الخدمات المميزة (الإنشاء والصيانة)
+    
+    هذه العروض خاصة بخدمات:
+    - إنشاء المسابح
+    - صيانة المسابح
+    - تركيب أنظمة الترشيح والإضاءة
+    - تنظيف الفلاتر
+    
+    متاحة لـ: صاحب الحمام وممثل الشركة
+    تظهر في: الصفحة الرئيسية (Home Page) عند الضغط على "عرض الكل"
+    
+    ملاحظة: هذه مختلفة عن منتجات المتجر (معدات الصيانة)
+    """
+    from app.api.v1.endpoints.home import _fetch_featured_service_offers
+    return _fetch_featured_service_offers(limit, db)
+
+@router.get("/{offer_id}", response_model=ServiceOfferDetailResponse, summary="تفاصيل عرض خدمة")
 def get_offer(offer_id: int, db: Session = Depends(get_db)):
     """الحصول على تفاصيل عرض معين"""
     offer = db.query(ServiceOffer).filter(ServiceOffer.id == offer_id).first()
@@ -77,7 +108,7 @@ def get_offer(offer_id: int, db: Session = Depends(get_db)):
     
     return offer_dict
 
-@router.post("/offers", response_model=ServiceOfferResponse, status_code=status.HTTP_201_CREATED, summary="إضافة عرض (Admin)")
+@router.post("/", response_model=ServiceOfferResponse, status_code=status.HTTP_201_CREATED, summary="إضافة عرض خدمة (Admin)")
 def create_offer(
     offer: ServiceOfferCreate,
     db: Session = Depends(get_db),
@@ -100,7 +131,7 @@ def create_offer(
     db.refresh(new_offer)
     return new_offer
 
-@router.put("/offers/{offer_id}", response_model=ServiceOfferResponse, summary="تحديث عرض (Admin)")
+@router.put("/{offer_id}", response_model=ServiceOfferResponse, summary="تحديث عرض خدمة (Admin)")
 def update_offer(
     offer_id: int,
     offer: ServiceOfferUpdate,
@@ -123,7 +154,7 @@ def update_offer(
     db.refresh(db_offer)
     return db_offer
 
-@router.delete("/offers/{offer_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف عرض (Admin)")
+@router.delete("/{offer_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف عرض خدمة (Admin)")
 def delete_offer(
     offer_id: int,
     db: Session = Depends(get_db),

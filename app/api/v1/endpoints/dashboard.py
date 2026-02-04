@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, nullslast
 from sqlalchemy.orm import Session
 
-from app.api.v1.endpoints.home import _fetch_featured_offers
+from app.api.v1.endpoints.home import _fetch_featured_service_offers, _fetch_featured_products
 from app.core.config import settings
 from app.core.dependencies import (
     get_current_company_user,
@@ -234,7 +234,7 @@ def _fetch_special_offers(db: Session, limit: int = 6) -> List[OfferCard]:
         )
 
     if not offer_cards:
-        fetched = _fetch_featured_offers(limit=limit, db=db)
+        fetched = _fetch_featured_service_offers(limit=limit, db=db)
         for offer in fetched:
             offer_cards.append(
                 OfferCard(

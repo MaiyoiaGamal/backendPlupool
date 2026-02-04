@@ -241,6 +241,7 @@ class ProjectResponse(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     next_visit: Optional[dict] = None  # {date, time, reminder}
+    image_url: Optional[str] = None  # صورة المشروع
 
 class ProjectsListResponse(BaseModel):
     """قائمة المشاريع مصنفة حسب الحالة"""

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.db.database import get_db
@@ -25,6 +25,7 @@ from app.schemas.account import (
 )
 from app.models.enums import UserRole
 from app.services.upload_service import UploadService
+from app.core.validators import Validators
 
 router = APIRouter()
 
@@ -236,13 +237,21 @@ async def get_technician_profile(
 
 @router.put("/account/profile/technician", response_model=ProfileResponse)
 async def update_technician_profile(
-    profile_update: TechnicianProfileUpdateRequest,
+    full_name: Optional[str] = Form(None, min_length=3, max_length=50),
+    address: Optional[str] = Form(None),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
+    skills: Optional[str] = Form(None),  # JSON string or comma-separated
+    years_of_experience: Optional[int] = Form(None, ge=0, le=50),
+    phone: Optional[str] = Form(None),
+    country_code: Optional[str] = Form(None),
+    profile_image: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
-    تحديث معلومات حساب الفني
-    Update technician profile information
+    تحديث معلومات حساب الفني (مع رفع صورة اختياري)
+    Update technician profile information (with optional image upload)
     """
     if current_user.role != UserRole.TECHNICIAN:
         raise HTTPException(
@@ -250,25 +259,52 @@ async def update_technician_profile(
             detail="هذا الـ endpoint مخصص للفنيين فقط"
         )
     
-    update_data = profile_update.dict(exclude_unset=True)
+    # رفع الصورة إذا كانت موجودة
+    if profile_image and profile_image.filename:
+        try:
+            # حذف الصورة القديمة إذا كانت موجودة
+            if current_user.profile_image:
+                UploadService.delete_image(current_user.profile_image)
+            
+            profile_image_url = await UploadService.upload_profile_image(profile_image, current_user.id)
+            current_user.profile_image = profile_image_url
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"حدث خطأ أثناء رفع الصورة: {str(e)}"
+            )
     
-    # معالجة skills - تحويل من list إلى comma-separated string
-    if 'skills' in update_data and update_data['skills'] is not None:
-        update_data['skills'] = ", ".join(update_data['skills'])
+    # تحديث الحقول الأخرى
+    if full_name is not None:
+        current_user.full_name = full_name
+    if address is not None:
+        current_user.address = address
+    if latitude is not None:
+        current_user.latitude = latitude
+    if longitude is not None:
+        current_user.longitude = longitude
+    if years_of_experience is not None:
+        current_user.years_of_experience = years_of_experience
+    if phone is not None:
+        phone_number, country_code_parsed = Validators.parse_phone_number(phone)
+        current_user.phone = phone_number
+        if country_code:
+            current_user.country_code = country_code
+        elif country_code_parsed:
+            current_user.country_code = country_code_parsed
+    elif country_code is not None:
+        current_user.country_code = country_code
     
-    # معالجة profile_image: إذا كان string URL، نحفظه مباشرة
-    # إذا كان file، يجب استخدام endpoint رفع الصور المنفصل
-    if 'profile_image' in update_data:
-        # إذا كان URL صحيح، نحفظه
-        # إذا كان base64 أو file، يجب استخدام /upload-image endpoint
-        if update_data['profile_image'] and not update_data['profile_image'].startswith('http'):
-            # إذا لم يكن URL، نحذف الحقل (يجب استخدام upload endpoint)
-            update_data.pop('profile_image')
-    
-    # تحديث الحقول
-    for field, value in update_data.items():
-        if value is not None:
-            setattr(current_user, field, value)
+    # معالجة skills
+    if skills is not None:
+        try:
+            import json
+            skills_list = json.loads(skills) if skills.startswith('[') else skills.split(',')
+            current_user.skills = ", ".join([s.strip() for s in skills_list if s.strip()])
+        except:
+            current_user.skills = skills
     
     db.commit()
     db.refresh(current_user)
@@ -326,13 +362,19 @@ async def get_pool_owner_profile(
 
 @router.put("/account/profile/pool-owner", response_model=ProfileResponse)
 async def update_pool_owner_profile(
-    profile_update: PoolOwnerProfileUpdateRequest,
+    full_name: Optional[str] = Form(None, min_length=3, max_length=50),
+    address: Optional[str] = Form(None),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
+    phone: Optional[str] = Form(None),
+    country_code: Optional[str] = Form(None),
+    profile_image: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
-    تحديث معلومات حساب صاحب الحمام
-    Update pool owner profile information
+    تحديث معلومات حساب صاحب الحمام (مع رفع صورة اختياري)
+    Update pool owner profile information (with optional image upload)
     """
     if current_user.role != UserRole.POOL_OWNER:
         raise HTTPException(
@@ -340,12 +382,41 @@ async def update_pool_owner_profile(
             detail="هذا الـ endpoint مخصص لأصحاب المسابح فقط"
         )
     
-    update_data = profile_update.dict(exclude_unset=True)
+    # رفع الصورة إذا كانت موجودة
+    if profile_image and profile_image.filename:
+        try:
+            # حذف الصورة القديمة إذا كانت موجودة
+            if current_user.profile_image:
+                UploadService.delete_image(current_user.profile_image)
+            
+            profile_image_url = await UploadService.upload_profile_image(profile_image, current_user.id)
+            current_user.profile_image = profile_image_url
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"حدث خطأ أثناء رفع الصورة: {str(e)}"
+            )
     
-    # تحديث الحقول
-    for field, value in update_data.items():
-        if value is not None:
-            setattr(current_user, field, value)
+    # تحديث الحقول الأخرى
+    if full_name is not None:
+        current_user.full_name = full_name
+    if address is not None:
+        current_user.address = address
+    if latitude is not None:
+        current_user.latitude = latitude
+    if longitude is not None:
+        current_user.longitude = longitude
+    if phone is not None:
+        phone_number, country_code_parsed = Validators.parse_phone_number(phone)
+        current_user.phone = phone_number
+        if country_code:
+            current_user.country_code = country_code
+        elif country_code_parsed:
+            current_user.country_code = country_code_parsed
+    elif country_code is not None:
+        current_user.country_code = country_code
     
     db.commit()
     db.refresh(current_user)
@@ -398,13 +469,16 @@ async def get_company_profile(
 
 @router.put("/account/profile/company", response_model=ProfileResponse)
 async def update_company_profile(
-    profile_update: CompanyProfileUpdateRequest,
+    full_name: Optional[str] = Form(None, min_length=3, max_length=50),
+    phone: Optional[str] = Form(None),
+    country_code: Optional[str] = Form(None),
+    profile_image: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
-    تحديث معلومات حساب الشركة
-    Update company profile information
+    تحديث معلومات حساب الشركة (مع رفع صورة اختياري)
+    Update company profile information (with optional image upload)
     """
     if current_user.role != UserRole.COMPANY:
         raise HTTPException(
@@ -412,12 +486,35 @@ async def update_company_profile(
             detail="هذا الـ endpoint مخصص للشركات فقط"
         )
     
-    update_data = profile_update.dict(exclude_unset=True)
+    # رفع الصورة إذا كانت موجودة
+    if profile_image and profile_image.filename:
+        try:
+            # حذف الصورة القديمة إذا كانت موجودة
+            if current_user.profile_image:
+                UploadService.delete_image(current_user.profile_image)
+            
+            profile_image_url = await UploadService.upload_profile_image(profile_image, current_user.id)
+            current_user.profile_image = profile_image_url
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"حدث خطأ أثناء رفع الصورة: {str(e)}"
+            )
     
-    # تحديث الحقول
-    for field, value in update_data.items():
-        if value is not None:
-            setattr(current_user, field, value)
+    # تحديث الحقول الأخرى
+    if full_name is not None:
+        current_user.full_name = full_name
+    if phone is not None:
+        phone_number, country_code_parsed = Validators.parse_phone_number(phone)
+        current_user.phone = phone_number
+        if country_code:
+            current_user.country_code = country_code
+        elif country_code_parsed:
+            current_user.country_code = country_code_parsed
+    elif country_code is not None:
+        current_user.country_code = country_code
     
     db.commit()
     db.refresh(current_user)

@@ -80,9 +80,37 @@ def delete_category(
     db.commit()
     return None
 
-# ============= Products APIs =============
+# ============= Products APIs (المنتجات - معدات الصيانة) =============
+# هذه المنتجات خاصة بمعدات الصيانة والمتجر
+# متاحة لجميع الأدوار (كل المستخدمين)
+# تظهر في المتجر للجميع، وفي الصفحة الرئيسية للفني فقط
+# للعروض على الخدمات (الإنشاء والصيانة)، استخدم /offers
 
-@router.get("/products", response_model=List[ProductDetailResponse], summary="قائمة المنتجات مع البحث والفلترة")
+@router.get("/featured", response_model=List[ProductDetailResponse], summary="المنتجات المميزة (للصفحة الرئيسية)")
+def get_featured_products(
+    limit: int = Query(6, description="عدد المنتجات"),
+    db: Session = Depends(get_db)
+):
+    """
+    الحصول على المنتجات المميزة من المتجر (معدات الصيانة)
+    
+    هذه المنتجات خاصة بـ:
+    - مضخات المياه
+    - فلاتر المسبح
+    - معدات الصيانة
+    - أدوات التنظيف
+    
+    متاحة لـ: جميع الأدوار (كل المستخدمين)
+    تظهر في: 
+    - المتجر (Store) للجميع
+    - الصفحة الرئيسية (Home Page) للفني فقط عند الضغط على "عرض الكل"
+    
+    ملاحظة: هذه مختلفة عن عروض الخدمات (الإنشاء والصيانة)
+    """
+    from app.api.v1.endpoints.home import _fetch_featured_products
+    return _fetch_featured_products(limit, db)
+
+@router.get("/", response_model=List[ProductDetailResponse], summary="قائمة المنتجات مع البحث والفلترة")
 def get_all_products(
     # البحث
     search: Optional[str] = Query(None, description="البحث في اسم المنتج"),
@@ -106,10 +134,13 @@ def get_all_products(
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """
-    الحصول على قائمة المنتجات مع إمكانيات:
+    الحصول على قائمة المنتجات (معدات الصيانة) مع إمكانيات:
     - 🔍 البحث (يحفظ تاريخ البحث)
     - 🎯 التصفية (الفئة، السعر، التوصيل، إلخ)
     - 📊 الترتيب (حسب السعر، التقييم، الأحدث، إلخ)
+    
+    ملاحظة: هذه المنتجات خاصة بمعدات الصيانة والمتجر.
+    للعروض على الخدمات (الإنشاء والصيانة)، استخدم /offers
     """
     
     query = db.query(Product)
@@ -184,7 +215,7 @@ def get_all_products(
     
     return results
 
-@router.get("/products/{product_id}", response_model=ProductDetailResponse, summary="تفاصيل منتج")
+@router.get("/{product_id}", response_model=ProductDetailResponse, summary="تفاصيل منتج")
 def get_product(product_id: int, db: Session = Depends(get_db)):
     """الحصول على تفاصيل منتج معين"""
     product = db.query(Product).filter(Product.id == product_id).first()
@@ -202,7 +233,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     
     return product_dict
 
-@router.post("/products", response_model=ProductResponse, status_code=status.HTTP_201_CREATED, summary="إضافة منتج (Admin)")
+@router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED, summary="إضافة منتج (Admin)")
 def create_product(
     product: ProductCreate,
     db: Session = Depends(get_db),
@@ -220,7 +251,7 @@ def create_product(
     db.refresh(new_product)
     return new_product
 
-@router.put("/products/{product_id}", response_model=ProductResponse, summary="تحديث منتج (Admin)")
+@router.put("/{product_id}", response_model=ProductResponse, summary="تحديث منتج (Admin)")
 def update_product(
     product_id: int,
     product: ProductUpdate,
@@ -243,7 +274,7 @@ def update_product(
     db.refresh(db_product)
     return db_product
 
-@router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف منتج (Admin)")
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT, summary="حذف منتج (Admin)")
 def delete_product(
     product_id: int,
     db: Session = Depends(get_db),

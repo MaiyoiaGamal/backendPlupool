@@ -6,7 +6,7 @@ class UserRole(str, Enum):
     GUEST = "guest"             # ضيف - Browse only
     POOL_OWNER = "pool_owner"   # صاحب حمام
     TECHNICIAN = "technician"   # فني صيانة
-    COMPANY = "company"         # شركة
+    COMPANY = "company"         # شركة 
     ADMIN = "admin"             # مسؤول النظام - يتم تعيينه من الباك اند فقط 
 
 class BookingType(str, Enum):

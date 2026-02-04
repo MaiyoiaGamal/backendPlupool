@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime, timezone
+from typing import Optional, List
 
 from app.core.config import settings
 from app.core.security import create_access_token
@@ -16,6 +17,7 @@ from app.schemas.user import (
 from app.schemas.token import Token
 from app.schemas.auth import LogoutResponse
 from app.services.otp_service import OTPService
+from app.services.upload_service import UploadService
 
 router = APIRouter()
 
@@ -131,13 +133,24 @@ async def verify_otp_login(request: VerifyOTPRequest, db: Session = Depends(get_
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/signup/technician", response_model=Token, status_code=status.HTTP_201_CREATED)
-async def signup_technician(data: TechnicianSignUp, db: Session = Depends(get_db)):
+async def signup_technician(
+    phone: str = Form(...),
+    otp_code: str = Form(...),
+    full_name: str = Form(..., min_length=3, max_length=50),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    address: str = Form(...),
+    skills: str = Form(...),  # JSON string or comma-separated
+    years_of_experience: int = Form(..., ge=0, le=50),
+    profile_image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
     """
-    تسجيل فني صيانة
-    Sign up as Technician
+    تسجيل فني صيانة (مع رفع صورة اختياري)
+    Sign up as Technician (with optional image upload)
     """
     # فصل كود الدولة عن رقم التليفون
-    phone_number, country_code = Validators.parse_phone_number(data.phone)
+    phone_number, country_code = Validators.parse_phone_number(phone)
     
     user = db.query(User).filter(User.phone == phone_number).first()
     
@@ -148,22 +161,44 @@ async def signup_technician(data: TechnicianSignUp, db: Session = Depends(get_db
         )
     
     # Verify OTP
-    if not OTPService.verify_otp(user.otp_code, user.otp_expires_at, data.otp_code):
+    if not OTPService.verify_otp(user.otp_code, user.otp_expires_at, otp_code):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="رمز التحقق غير صحيح أو منتهي الصلاحية"
         )
     
+    # رفع الصورة إذا كانت موجودة
+    profile_image_url = None
+    if profile_image and profile_image.filename:
+        try:
+            profile_image_url = await UploadService.upload_profile_image(profile_image, user.id)
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"حدث خطأ أثناء رفع الصورة: {str(e)}"
+            )
+    
+    # معالجة skills - يمكن أن تكون JSON string أو comma-separated
+    try:
+        import json
+        skills_list = json.loads(skills) if skills.startswith('[') else skills.split(',')
+        skills_str = ", ".join([s.strip() for s in skills_list if s.strip()])
+    except:
+        skills_str = skills
+    
     # Update user profile
-    user.full_name = data.full_name
-    user.profile_image = data.profile_image
+    user.full_name = full_name
+    if profile_image_url:
+        user.profile_image = profile_image_url
     user.role = UserRole.TECHNICIAN
-    user.latitude = data.latitude
-    user.longitude = data.longitude
-    user.address = data.address
-    user.skills = ",".join(data.skills)  # Store as comma-separated
-    user.years_of_experience = data.years_of_experience
-    user.country_code = country_code  # تحديث كود الدولة
+    user.latitude = latitude
+    user.longitude = longitude
+    user.address = address
+    user.skills = skills_str
+    user.years_of_experience = years_of_experience
+    user.country_code = country_code
     user.is_phone_verified = True
     user.last_login = datetime.now(timezone.utc)
     user.otp_code = None
@@ -183,13 +218,22 @@ async def signup_technician(data: TechnicianSignUp, db: Session = Depends(get_db
    
 
 @router.post("/signup/pool-owner", response_model=Token, status_code=status.HTTP_201_CREATED)
-async def signup_pool_owner(data: PoolOwnerSignUp, db: Session = Depends(get_db)):
+async def signup_pool_owner(
+    phone: str = Form(...),
+    otp_code: str = Form(...),
+    full_name: str = Form(..., min_length=3, max_length=50),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    address: str = Form(...),
+    profile_image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
     """
-    تسجيل صاحب حمام
-    Sign up as Pool Owner
+    تسجيل صاحب حمام (مع رفع صورة اختياري)
+    Sign up as Pool Owner (with optional image upload)
     """
     # فصل كود الدولة عن رقم التليفون
-    phone_number, country_code = Validators.parse_phone_number(data.phone)
+    phone_number, country_code = Validators.parse_phone_number(phone)
     
     user = db.query(User).filter(User.phone == phone_number).first()
     
@@ -200,20 +244,34 @@ async def signup_pool_owner(data: PoolOwnerSignUp, db: Session = Depends(get_db)
         )
     
     # Verify OTP
-    if not OTPService.verify_otp(user.otp_code, user.otp_expires_at, data.otp_code):
+    if not OTPService.verify_otp(user.otp_code, user.otp_expires_at, otp_code):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="رمز التحقق غير صحيح أو منتهي الصلاحية"
         )
     
+    # رفع الصورة إذا كانت موجودة
+    profile_image_url = None
+    if profile_image and profile_image.filename:
+        try:
+            profile_image_url = await UploadService.upload_profile_image(profile_image, user.id)
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"حدث خطأ أثناء رفع الصورة: {str(e)}"
+            )
+    
     # Update user profile
-    user.full_name = data.full_name
-    user.profile_image = data.profile_image
+    user.full_name = full_name
+    if profile_image_url:
+        user.profile_image = profile_image_url
     user.role = UserRole.POOL_OWNER
-    user.latitude = data.latitude
-    user.longitude = data.longitude
-    user.address = data.address
-    user.country_code = country_code  # تحديث كود الدولة
+    user.latitude = latitude
+    user.longitude = longitude
+    user.address = address
+    user.country_code = country_code
     user.is_phone_verified = True
     user.last_login = datetime.now(timezone.utc)
     user.otp_code = None
@@ -231,13 +289,19 @@ async def signup_pool_owner(data: PoolOwnerSignUp, db: Session = Depends(get_db)
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/signup/company", response_model=Token, status_code=status.HTTP_201_CREATED)
-async def signup_company(data: CompanySignUp, db: Session = Depends(get_db)):
+async def signup_company(
+    phone: str = Form(...),
+    otp_code: str = Form(...),
+    full_name: str = Form(..., min_length=3, max_length=50),
+    profile_image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
     """
-    تسجيل ممثل شركة
-    Sign up as Company Representative
+    تسجيل ممثل شركة (مع رفع صورة اختياري)
+    Sign up as Company Representative (with optional image upload)
     """
     # فصل كود الدولة عن رقم التليفون
-    phone_number, country_code = Validators.parse_phone_number(data.phone)
+    phone_number, country_code = Validators.parse_phone_number(phone)
     
     user = db.query(User).filter(User.phone == phone_number).first()
     
@@ -248,17 +312,31 @@ async def signup_company(data: CompanySignUp, db: Session = Depends(get_db)):
         )
     
     # Verify OTP
-    if not OTPService.verify_otp(user.otp_code, user.otp_expires_at, data.otp_code):
+    if not OTPService.verify_otp(user.otp_code, user.otp_expires_at, otp_code):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="رمز التحقق غير صحيح أو منتهي الصلاحية"
         )
     
+    # رفع الصورة إذا كانت موجودة
+    profile_image_url = None
+    if profile_image and profile_image.filename:
+        try:
+            profile_image_url = await UploadService.upload_profile_image(profile_image, user.id)
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"حدث خطأ أثناء رفع الصورة: {str(e)}"
+            )
+    
     # Update user profile
-    user.full_name = data.full_name
-    user.profile_image = data.profile_image
+    user.full_name = full_name
+    if profile_image_url:
+        user.profile_image = profile_image_url
     user.role = UserRole.COMPANY
-    user.country_code = country_code  # تحديث كود الدولة
+    user.country_code = country_code
     user.is_phone_verified = True
     user.last_login = datetime.now(timezone.utc)
     user.otp_code = None
